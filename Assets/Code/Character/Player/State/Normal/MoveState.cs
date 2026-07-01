@@ -20,6 +20,11 @@ namespace RPG2D.Character.Player
                 stateMachine.SwitchState<IdleState>();
                 return;
             }
+            if (stateMachine.detector.IsGrounded && stateMachine.controller.inputData.Jump)
+            {
+                stateMachine.SwitchState<JumpState>();
+                return;
+            }
 
             stateMachine.actor.Move();
         }

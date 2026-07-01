@@ -9,5 +9,6 @@ namespace RPG2D.Character.Player
     /// </summary>
     public class PlayerInputData : InputData
     {
+        public bool Jump;
     }
 }

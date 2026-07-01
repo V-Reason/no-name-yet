@@ -27,6 +27,8 @@ namespace RPG2D.Character.Player
             // 使得各state可以调用stateMachine
             RegisterState(new IdleState(this));
             RegisterState(new MoveState(this));
+            RegisterState(new JumpState(this));
+            RegisterState(new FallState(this));
         }
 
         // 指定初始状态

@@ -1,3 +1,5 @@
+using RPG2D.Utilities;
+
 namespace RPG2D.Character.Player
 {
     /// <summary>
@@ -21,6 +23,18 @@ namespace RPG2D.Character.Player
                 stateMachine.SwitchState<MoveState>();
                 return; // 立即切断逻辑！！！
             }
+            if (!stateMachine.detector.IsGrounded)
+            {
+                stateMachine.SwitchState<FallState>();
+                return;
+            }
+            if (stateMachine.detector.IsGrounded && stateMachine.controller.inputData.Jump)
+            {
+                stateMachine.SwitchState<JumpState>();
+                return;
+            }
+
+            Logger.LOG($"{stateMachine.detector.IsGrounded}, {stateMachine.controller.inputData.Jump}");
         }
 
         public override void Exit()

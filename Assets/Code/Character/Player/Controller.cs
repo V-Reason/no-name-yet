@@ -17,10 +17,13 @@ namespace RPG2D.Character.Player
         public override void OnUpdate()
         {
             updateMoveInput();
+            updateJumpInput();
         }
 
         // 检测输入
         void updateMoveInput() =>
             inputData.Move = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical"));
+        void updateJumpInput() =>
+            inputData.Jump = Input.GetButtonDown("Jump");
     }
 }

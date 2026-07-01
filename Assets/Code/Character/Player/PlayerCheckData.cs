@@ -9,6 +9,7 @@ namespace RPG2D.Character.Player
 {
     public class PlayerCheckData : CheckData
     {
+        public bool IsGrounded { get; set; }
         public bool IsMoving { get; set; }
         public Vector2 Velocity { get; set; }
     }
