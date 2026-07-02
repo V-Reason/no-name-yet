@@ -10,5 +10,6 @@ namespace RPG2D.Character.Player
     [CreateAssetMenu(fileName = "PlayerData", menuName = "Data/PlayerData")]
     public class PlayerData : ActorData
     {
+        public float jumpForce;
     }
 }

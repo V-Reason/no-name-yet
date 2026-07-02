@@ -21,5 +21,19 @@ namespace RPG2D.Character.Player
             base.Awake();
         }
 
+        // 跳跃
+        public virtual void Jump(Vector2? offset = null)
+        {
+            rb.velocity = new Vector2(rb.velocity.x, 0); // 重置Y轴速度
+
+            Vector2 finalImpulse = Vector2.up * playerData.jumpForce;
+            if (offset.HasValue)
+            {
+                rb.velocity = Vector2.zero;
+                finalImpulse += offset.Value;
+            }
+            ApplyImpulse(finalImpulse);
+        }
+
     }
 }

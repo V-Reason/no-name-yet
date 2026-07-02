@@ -9,6 +9,7 @@ namespace RPG2D.Character.Player
     {
         private Rigidbody2D rb;
 
+        public bool IsGrounded => GetCondition<GroundChecker>();
         public bool IsMoving => controller.inputData.Move.x != 0;
 
         protected void Start()
@@ -24,6 +25,7 @@ namespace RPG2D.Character.Player
 
         private void UpdateCheckData()
         {
+            checkData.IsGrounded = IsGrounded;
             checkData.IsMoving = IsMoving;
             checkData.Velocity = rb.velocity;
         }
