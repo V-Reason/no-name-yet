@@ -70,7 +70,21 @@ namespace RPG2D.Pyhsics.TurbForce
         /// </summary>
         public Vector2 GetForceAt(Vector2 worldPosition)
         {
+            if (!ContainsPoint(worldPosition))
+            {
+                return Vector2.zero;
+            }
+
             return Force * GetEdgeFalloffMultiplier(worldPosition);
+        }
+
+        /// <summary>
+        /// 判断世界坐标点是否位于当前湍流区域的碰撞体范围内.
+        /// </summary>
+        public bool ContainsPoint(Vector2 worldPosition)
+        {
+            Collider2D zoneCollider = GetComponent<Collider2D>();
+            return zoneCollider != null && zoneCollider.OverlapPoint(worldPosition);
         }
 
         /// <summary>
