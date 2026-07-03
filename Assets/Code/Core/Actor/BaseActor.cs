@@ -21,16 +21,18 @@ namespace RPG2D.Core.Actor
     /// 是否应该执行交给上层处理
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(CapsuleCollider2D))]
     public abstract class BaseActor<TActorData> :
         MonoBehaviour, IActor
         where TActorData : ActorData
     {
         // 内部参数
-        protected TActorData actorData;
+        [SerializeField] protected TActorData actorData;
         protected IController controller;
 
         // 对外接口
         public Rigidbody2D rb { get; protected set; }
+        public CapsuleCollider2D cld { get; protected set; }
         [HideInInspector]
         public Direction currFacing { get; protected set; } = Direction.Right;
         [HideInInspector]
@@ -40,7 +42,7 @@ namespace RPG2D.Core.Actor
 
         protected virtual void Start()
         {
-            // 目前为空
+            SetupPhysics();
         }
 
         protected virtual void Awake()
@@ -76,22 +78,31 @@ namespace RPG2D.Core.Actor
             // inputData内含角色移动的速度参数
             InputData input = controller.inputData;
 
-            float axis = input.Move.x;
-            if (Mathf.Abs(axis) <= 0.01f) return;
+            Vector2 moveInput = input.Move;
+            if (moveInput.sqrMagnitude <= 0.001f) return;
 
-            float targetSpeed = axis * actorData.moveSpeed; // 目标速度
+            Debug.Log($"Move: {moveInput}");
 
-            bool isMovingSameDir = Mathf.Sign(axis) == Mathf.Sign(rb.velocity.x);
-            bool isReachedTarget = Mathf.Abs(rb.velocity.x) >= Mathf.Abs(targetSpeed);
+            // 目标速度
+            Vector2 targetVelocity = moveInput * actorData.moveSpeed;
 
-            if (isMovingSameDir && isReachedTarget) return;
+            // 计算速度差
+            Vector2 speedDif = targetVelocity - rb.velocity;
 
-            float speedDif = targetSpeed - rb.velocity.x;        // 速度差
-            float impulse = speedDif * rb.mass / 10;             // 加速动量
+            // 是否在转向
+            float dotMultiplier = Vector2.Dot(moveInput.normalized, rb.velocity.normalized);
+            float currentAccel = actorData.swimAcceleration;
 
-            ApplyImpulse(Vector2.right * impulse);
+            if (dotMultiplier < 0) // 反向移动加力度
+            {
+                currentAccel *= actorData.turnExtraBoost;
+            }
 
-            HandleFlip(axis);
+            Vector2 impulse = speedDif * (currentAccel * Time.fixedDeltaTime);
+
+            ApplyImpulse(impulse);
+
+            HandleFlip(moveInput.x);
         }
 
         // 处理转向
@@ -132,6 +143,30 @@ namespace RPG2D.Core.Actor
             {
                 rb.velocity = rb.velocity.normalized * maxSpeed;
             }
+        }
+
+        // 自动初始化物理属性
+        protected virtual void SetupPhysics()
+        {
+            rb = GetComponent<Rigidbody2D>();
+            cld = GetComponent<CapsuleCollider2D>();
+
+            if (rb == null || cld == null)
+            {
+                Debug.LogError("物理组件未附着！");
+                return;
+            }
+
+            rb.drag = actorData.linearDrag;
+            rb.angularDrag = actorData.angularDrag;
+            rb.gravityScale = actorData.gravityScale;
+            rb.interpolation = actorData.interpolation;
+            rb.collisionDetectionMode = actorData.collisionDetectionMode;
+            rb.constraints = actorData.constraints;
+
+            cld.sharedMaterial = actorData.material;
+
+            Debug.Log("物理属性设置完毕！");
         }
 
     }

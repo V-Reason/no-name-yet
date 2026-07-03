@@ -21,5 +21,10 @@ namespace RPG2D.Character.Player
             base.Awake();
         }
 
+        [ContextMenu("初始化物理参数")]
+        protected override void SetupPhysics()
+        {
+            base.SetupPhysics();
+        }
     }
 }

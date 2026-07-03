@@ -9,7 +9,7 @@ namespace RPG2D.Character.Player
     {
         private Rigidbody2D rb;
 
-        public bool IsMoving => controller.inputData.Move.x != 0;
+        public bool IsMoving => controller.inputData.Move != Vector2.zero;
 
         protected void Start()
         {
