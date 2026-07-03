@@ -1,12 +1,17 @@
 using UnityEngine;
+using System.Collections.Generic;
+using RPG2D.Core.Checker;
 
 namespace RPG2D.Pyhsics.TurbForce
 {
     /// <summary>
-    /// 固定 2D 湍流力区域, 为进入区域的接收器提供固定方向和强度的力.
+    /// 固定 2D 湍流力场, 主动检测区域内目标并施加固定方向和强度的力.
     /// </summary>
+    [RequireComponent(typeof(AreaTargetChecker2D))]
     public class TurbForceZone2D : MonoBehaviour
     {
+        private readonly List<Rigidbody2D> appliedRigidbodies = new();
+
         [SerializeField]
         private Vector2 forceDirection = Vector2.up;
 
@@ -21,6 +26,8 @@ namespace RPG2D.Pyhsics.TurbForce
 
         [SerializeField, Range(0f, 1f)]
         private float edgeForceMultiplier = 0f;
+
+        private AreaTargetChecker2D targetChecker;
 
         /// <summary>
         /// 获取当前区域提供的湍流力, 方向会被归一化后再乘以强度.
@@ -45,6 +52,7 @@ namespace RPG2D.Pyhsics.TurbForce
 
         private void Awake()
         {
+            targetChecker = GetComponent<AreaTargetChecker2D>();
             EnsureTriggerCollider();
         }
 
@@ -56,6 +64,11 @@ namespace RPG2D.Pyhsics.TurbForce
             EnsureTriggerCollider();
         }
 
+        private void FixedUpdate()
+        {
+            ApplyForceToTargets();
+        }
+
         /// <summary>
         /// 设置湍流方向和强度, 用于运行时配置或测试固定力结果.
         /// </summary>
@@ -63,6 +76,44 @@ namespace RPG2D.Pyhsics.TurbForce
         {
             forceDirection = direction;
             forceMagnitude = Mathf.Max(0f, magnitude);
+        }
+
+        /// <summary>
+        /// 检测力场范围内的目标, 并对每个刚体施加一次湍流力.
+        /// </summary>
+        private void ApplyForceToTargets()
+        {
+            if (targetChecker == null)
+            {
+                targetChecker = GetComponent<AreaTargetChecker2D>();
+            }
+
+            if (targetChecker == null)
+            {
+                return;
+            }
+
+            appliedRigidbodies.Clear();
+            targetChecker.Check();
+
+            for (int i = 0; i < targetChecker.HitCount; i++)
+            {
+                Collider2D targetCollider = targetChecker[i];
+                Rigidbody2D targetRb = targetCollider != null ? targetCollider.attachedRigidbody : null;
+                if (targetRb == null || appliedRigidbodies.Contains(targetRb))
+                {
+                    continue;
+                }
+
+                Vector2 force = GetForceAt(targetRb.position);
+                if (force.sqrMagnitude <= Mathf.Epsilon)
+                {
+                    continue;
+                }
+
+                targetRb.AddForce(force, ForceMode2D.Force);
+                appliedRigidbodies.Add(targetRb);
+            }
         }
 
         /// <summary>
