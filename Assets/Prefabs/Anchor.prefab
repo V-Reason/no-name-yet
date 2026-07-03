@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3728125009828153691}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Anchor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 2612002391228589016}
   - component: {fileID: 3527454134194930418}
   - component: {fileID: 6870423168837514536}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Chain
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -193,7 +193,7 @@ MonoBehaviour:
   tailStartPoint: {fileID: 2612002391228589016}
   segmentCount: 10
   segmentLength: 1
-  gravity: {x: 0, y: 0.1}
+  gravity: {x: 0, y: -0.3}
   drag: 0.95
   constraintIterations: 10
   enableCollision: 1

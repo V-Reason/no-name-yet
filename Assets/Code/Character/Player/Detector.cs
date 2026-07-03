@@ -5,15 +5,18 @@ using System;
 
 namespace RPG2D.Character.Player
 {
+    [RequireComponent(typeof(ChainChecker))]
     public class Detector : RPG2D.Core.Detector.BaseDetector<PlayerCheckData>
     {
         private Rigidbody2D rb;
+        private ChainChecker chainChecker;
 
         public bool IsMoving => controller.inputData.Move != Vector2.zero;
 
         protected void Start()
         {
             rb = GetComponent<StateMachine>().rb;
+            chainChecker = GetComponent<ChainChecker>();
         }
 
         public override void OnUpdate()
@@ -26,6 +29,9 @@ namespace RPG2D.Character.Player
         {
             checkData.IsMoving = IsMoving;
             checkData.Velocity = rb.velocity;
+
+            checkData.CanGrabChain = chainChecker.IsConditionMet;
+            checkData.TargetChain = chainChecker.detectedChain;
         }
     }
 }

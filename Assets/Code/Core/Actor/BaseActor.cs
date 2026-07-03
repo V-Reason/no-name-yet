@@ -81,8 +81,6 @@ namespace RPG2D.Core.Actor
             Vector2 moveInput = input.Move;
             if (moveInput.sqrMagnitude <= 0.001f) return;
 
-            Debug.Log($"Move: {moveInput}");
-
             // 目标速度
             Vector2 targetVelocity = moveInput * actorData.moveSpeed;
 

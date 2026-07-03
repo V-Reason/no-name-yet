@@ -519,6 +519,7 @@ GameObject:
   - component: {fileID: 807041847}
   - component: {fileID: 807041846}
   - component: {fileID: 807041845}
+  - component: {fileID: 807041853}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -669,6 +670,30 @@ Transform:
   - {fileID: 1291784661}
   m_Father: {fileID: 884877568}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &807041853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 807041844}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8339887003740394eac07efcbee87ca7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  framCheck: 1
+  radius: 0.8
+  originOffset: {x: 0, y: 0}
+  autoFlipOffset: 1
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  drawGizmos: 1
+  untouchedColor: {r: 1, g: 0, b: 0, a: 1}
+  touchedColor: {r: 0, g: 1, b: 0, a: 1}
+  wireSphereRadius: 0.05
+  gizmosAlpha: 1
 --- !u!1 &884877567
 GameObject:
   m_ObjectHideFlags: 0

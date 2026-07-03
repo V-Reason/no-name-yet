@@ -3,8 +3,11 @@ using UnityEngine;
 
 [ExecuteAlways]
 [RequireComponent(typeof(LineRenderer))]
-public class VerletChain2D : MonoBehaviour
+[RequireComponent(typeof(EdgeCollider2D))]
+public class Chain : MonoBehaviour
 {
+    private EdgeCollider2D edgeCollider;
+
     [System.Serializable]
     public struct Node
     {
@@ -48,6 +51,9 @@ public class VerletChain2D : MonoBehaviour
         {
             InitChain();
         }
+
+        edgeCollider = GetComponent<EdgeCollider2D>();
+        edgeCollider.isTrigger = true;
     }
 
     private void Update()
@@ -168,10 +174,13 @@ public class VerletChain2D : MonoBehaviour
     private void DrawChain()
     {
         if (lineRenderer.positionCount != nodes.Count) lineRenderer.positionCount = nodes.Count;
+        Vector2[] colliderPoints = new Vector2[nodes.Count];
         for (int i = 0; i < nodes.Count; i++)
         {
             lineRenderer.SetPosition(i, nodes[i].pos);
+            colliderPoints[i] = transform.InverseTransformPoint(nodes[i].pos);
         }
+        edgeCollider.points = colliderPoints;
     }
 
     private void UpdateEditorPreview()
@@ -198,4 +207,18 @@ public class VerletChain2D : MonoBehaviour
             UpdateEditorPreview();
         }
     }
+
+    public int GetClosestNodeIndex(Vector2 targetPos)
+    {
+        int closest = 0;
+        float minDist = float.MaxValue;
+        for (int i = 0; i < nodes.Count; i++)
+        {
+            float d = Vector2.Distance(targetPos, nodes[i].pos);
+            if (d < minDist) { minDist = d; closest = i; }
+        }
+        return closest;
+    }
+
+    public Vector2 GetNodePos(int index) => nodes[Mathf.Clamp(index, 0, nodes.Count - 1)].pos;
 }

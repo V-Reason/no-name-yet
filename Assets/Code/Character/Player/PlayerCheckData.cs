@@ -11,5 +11,8 @@ namespace RPG2D.Character.Player
     {
         public bool IsMoving { get; set; }
         public Vector2 Velocity { get; set; }
+
+        public bool CanGrabChain { get; set; }
+        public Chain TargetChain { get; set; }
     }
 }
