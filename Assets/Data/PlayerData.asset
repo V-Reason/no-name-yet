@@ -11,5 +11,15 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e1bcdbc80d615084b8321b12cfb1dd05, type: 3}
   m_Name: PlayerData
-  m_EditorClassIdentifier: 
-  moveSpeed: 14.42
+  m_EditorClassIdentifier:
+  moveSpeed: 5
+  swimAcceleration: 5
+  turnExtraBoost: 1.5
+  material: {fileID: 6200000, guid: 4882f03bc59c97045947e16643638f65, type: 2}
+  linearDrag: 2
+  angularDrag: 10
+  mass: 1
+  gravityScale: 0
+  interpolation: 1
+  collisionDetectionMode: 1
+  constraints: 4
