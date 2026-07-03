@@ -20,6 +20,7 @@ namespace RPG2D.Pyhsics.TurbForce
             get
             {
                 Vector2 totalForce = Vector2.zero;
+                Vector2 samplePosition = rb != null ? rb.position : (Vector2)transform.position;
 
                 for (int i = activeZones.Count - 1; i >= 0; i--)
                 {
@@ -30,7 +31,7 @@ namespace RPG2D.Pyhsics.TurbForce
                         continue;
                     }
 
-                    totalForce += zone.Force;
+                    totalForce += zone.GetForceAt(samplePosition);
                 }
 
                 return totalForce;
