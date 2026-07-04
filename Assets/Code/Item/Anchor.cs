@@ -3,40 +3,26 @@ using RPG2D.Core.Interaction;
 
 namespace RPG2D.Item
 {
-    [RequireComponent(typeof(CircleCollider2D))]
     public class Anchor : MonoBehaviour, IGrabbable, IHookable
     {
-        public Chain attachedChain;
+        public Chain attachedChain; // 该锚点向下连接的链条
+        public ChainHook incomingHook; // 当前钩在此锚点上的钩子
 
         public GrabType GrabType => GrabType.Static;
         public bool CanGrab() => true;
         public Transform GetTransform() => transform;
+        public Vector2 GetGrabPosition(Vector2 playerPos) => transform.position;
 
-        private CircleCollider2D cld => GetComponent<CircleCollider2D>();
-
+        // IHookable 实现
         public Vector2 GetHookAttachPosition() => transform.position;
-        public bool CanBeHooked() => true;
-
-        public void OnHooked(ChainHook hook) { /* 可以在这里播放音效或特效 */ }
-        public void OnUnhooked() { }
+        public bool CanBeHooked() => incomingHook == null;
+        public void OnHooked(ChainHook hook) => incomingHook = hook;
+        public void OnUnhooked() => incomingHook = null;
+        public Chain GetRelatedChain() => attachedChain;
 
         private void Awake()
         {
-            attachedChain = GetComponentInChildren<Chain>();
-            cld.isTrigger = true;
-        }
-
-        public Vector2 GetGrabPosition(Vector2 playerPosition)
-        {
-            // 锚点是固定的，直接返回自身位置
-            return transform.position;
-        }
-
-        private void OnDrawGizmos()
-        {
-            Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(transform.position, cld.radius);
-            Gizmos.DrawIcon(transform.position, "Anchor_Icon", true);
+            if (attachedChain == null) attachedChain = GetComponentInChildren<Chain>();
         }
     }
 }

@@ -82,6 +82,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   attachedChain: {fileID: 6870423168837514536}
+  incomingHook: {fileID: 0}
 --- !u!1 &3568118618458626558
 GameObject:
   m_ObjectHideFlags: 0
@@ -128,6 +129,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ownerChain: {fileID: 6870423168837514536}
+  incomingHook: {fileID: 0}
   detectRadius: 0.3
   interactableLayer:
     serializedVersion: 2
@@ -355,9 +357,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   nodeRadius: 0.3
+  parentAnchor: {fileID: 8475692929226619962}
   hookInstance: {fileID: 101753640666857414}
-  isHooked: 0
-  incomingHook: {fileID: 0}
 --- !u!68 &9049740961060424749
 EdgeCollider2D:
   m_ObjectHideFlags: 0

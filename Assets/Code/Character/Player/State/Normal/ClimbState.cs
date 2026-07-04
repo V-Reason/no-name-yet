@@ -6,7 +6,7 @@ namespace RPG2D.Character.Player
 {
     public class ClimbState : PlayerState
     {
-        private Chain chain;
+        private Chain currentChain;
         private int currentIdx;
         private float segmentProgress;
 
@@ -14,61 +14,57 @@ namespace RPG2D.Character.Player
 
         public override void Enter()
         {
-            var grabbable = stateMachine.detector.checkData.TargetGrabbable;
-            InitializeClimb(grabbable);
+            var target = stateMachine.detector.checkData.TargetGrabbable;
+            TransitionToGrabbable(target);
         }
 
-        // 提取初始化逻辑，方便切换锁链时复用
-        private void InitializeClimb(IGrabbable grabbable)
+        private void TransitionToGrabbable(IGrabbable target)
         {
-            if (grabbable == null) return;
+            if (target == null) return;
 
-            IGrabbable actualTarget = grabbable;
-
-            // --- 核心修复：重定向逻辑 ---
-            if (grabbable is Anchor anchor && anchor.attachedChain != null)
+            if (target is Anchor anchor)
             {
-                // 如果抓的是锚点，但锚点连着锁链，则视为抓住了锁链
-                actualTarget = anchor.attachedChain;
+                currentChain = anchor.attachedChain;
+                currentIdx = 0;
+                segmentProgress = 0f;
             }
-            // -------------------------
-
-            if (actualTarget.GrabType == GrabType.Static)
+            else if (target is Chain chain)
             {
-                stateMachine.transform.position = actualTarget.GetGrabPosition(stateMachine.transform.position);
-                chain = null;
+                currentChain = chain;
+                currentIdx = currentChain.GetClosestNodeIndex(stateMachine.transform.position);
+                currentIdx = Mathf.Clamp(currentIdx, 0, currentChain.NodeCount - 2);
+                segmentProgress = 0.5f;
             }
-            else if (actualTarget.GrabType == GrabType.Linear)
+            else if (target.GrabType == GrabType.Static)
             {
-                chain = actualTarget as Chain;
-
-                // 如果是从锚点重定向过来的，直接设为第0个节点
-                if (grabbable is Anchor)
-                {
-                    currentIdx = 0;
-                    segmentProgress = 0f;
-                }
-                else
-                {
-                    currentIdx = chain.GetClosestNodeIndex(stateMachine.transform.position);
-                    currentIdx = Mathf.Clamp(currentIdx, 0, chain.segmentCount - 2);
-                    segmentProgress = 0.5f;
-                }
+                stateMachine.transform.position = target.GetGrabPosition(stateMachine.transform.position);
+                currentChain = null;
             }
 
-            stateMachine.rb.velocity = Vector2.zero;
-            stateMachine.rb.isKinematic = true;
+            if (currentChain != null)
+            {
+                stateMachine.rb.velocity = Vector2.zero;
+                stateMachine.rb.isKinematic = true;
+            }
         }
 
         public override void OnUpdate()
         {
+            // Q键：解开所有连接
+            if (Input.GetKeyDown(KeyCode.Q) && currentChain != null)
+            {
+                currentChain.TryDisconnectAll();
+                return;
+            }
+
+            // 跳跃离开
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 stateMachine.SwitchState<IdleState>();
                 return;
             }
 
-            if (chain != null)
+            if (currentChain != null)
             {
                 HandleSwingLogic();
                 HandleClimbMovement();
@@ -77,31 +73,12 @@ namespace RPG2D.Character.Player
 
         private void HandleSwingLogic()
         {
-            if (chain == null) return;
-
-            // --- 统一的 Q 键逻辑 ---
-            if (Input.GetKeyDown(KeyCode.Q))
-            {
-                // 逻辑：如果在顶端且有东西勾着我，断开上面的；否则断开下面的
-                if (currentIdx <= 1 && segmentProgress < 0.5f && chain.incomingHook != null)
-                {
-                    Debug.Log("断开上方连接");
-                    chain.incomingHook.ownerChain.Disconnect();
-                }
-                else if (chain.isHooked)
-                {
-                    Debug.Log("断开下方连接");
-                    chain.Disconnect();
-                }
-                return; // 处理完 Q 立即返回
-            }
-
-            // 甩动逻辑
-            if (currentIdx <= 1 && Input.GetMouseButton(0))
+            // 甩动逻辑：在链条顶端时可以通过鼠标甩动
+            if (currentIdx <= 1 && segmentProgress < 0.5f && Input.GetMouseButton(0))
             {
                 Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 Vector2 dir = (mousePos - (Vector2)stateMachine.transform.position).normalized;
-                chain.ApplySwingForce(dir * stateMachine.actorData.swingPower * Mathf.Abs(Mathf.Sin(Time.time * 2)));
+                currentChain.ApplySwingForce(dir * stateMachine.actorData.swingPower * Mathf.Abs(Mathf.Sin(Time.time * 2)));
             }
         }
 
@@ -111,66 +88,72 @@ namespace RPG2D.Character.Player
 
             if (Mathf.Abs(inputY) < 0.01f)
             {
-                UpdatePlayerPositionOnChain();
+                UpdatePosition();
                 return;
             }
 
-            float delta = -inputY * stateMachine.actorData.climbSpeed * Time.deltaTime / chain.segmentLength;
+            float delta = -inputY * stateMachine.actorData.climbSpeed * Time.deltaTime / currentChain.SegLength;
             segmentProgress += delta;
 
-            // --- 向下跨段 (已经实现) ---
-            if (segmentProgress > 1f)
-            {
-                if (currentIdx < chain.segmentCount - 2)
-                {
-                    currentIdx++;
-                    segmentProgress -= 1f;
-                }
-                else if (chain.isHooked && chain.HookedTarget != null)
-                {
-                    var nextGrabbable = (chain.HookedTarget as Component)?.GetComponentInParent<IGrabbable>();
-                    if (nextGrabbable != null && nextGrabbable != (IGrabbable)chain)
-                    {
-                        InitializeClimb(nextGrabbable);
-                        currentIdx = 0;
-                        segmentProgress = 0.1f;
-                        return;
-                    }
-                }
-                else { segmentProgress = 1f; }
-            }
-            // --- 需求修复：向上跨段 (回到上一条锁链) ---
-            else if (segmentProgress < 0f)
+            // --- 向上跨越 ---
+            if (segmentProgress < 0f)
             {
                 if (currentIdx > 0)
                 {
                     currentIdx--;
-                    segmentProgress += 1f;
-                }
-                else if (chain.incomingHook != null) // 如果有上一级锁链钩着我
-                {
-                    Chain prevChain = chain.incomingHook.ownerChain;
-                    InitializeClimb(prevChain);
-                    // 修正：回到上一条链子的倒数第二个节点，进度设为末尾
-                    currentIdx = prevChain.segmentCount - 2;
                     segmentProgress = 0.95f;
-                    Debug.Log("<color=yellow>回爬成功</color>");
-                    return;
                 }
                 else
                 {
-                    segmentProgress = 0f;
+                    // 已经到顶，检查上方是否有链条钩住了我的锚点
+                    var upHook = currentChain.parentAnchor?.incomingHook;
+                    if (upHook != null)
+                    {
+                        currentChain = upHook.ownerChain;
+                        currentIdx = currentChain.NodeCount - 2;
+                        segmentProgress = 0.95f;
+                        Debug.Log("<color=yellow>无缝向上切换</color>");
+                    }
+                    else
+                    {
+                        segmentProgress = 0f;
+                    }
+                }
+            }
+            // --- 向下跨越 ---
+            else if (segmentProgress > 1f)
+            {
+                if (currentIdx < currentChain.NodeCount - 2)
+                {
+                    currentIdx++;
+                    segmentProgress = 0.05f;
+                }
+                else
+                {
+                    // 已经到底，检查钩子是否钩住了东西
+                    var target = currentChain.hookInstance?.hookedTarget;
+                    if (target != null && target.GetRelatedChain() != null)
+                    {
+                        currentChain = target.GetRelatedChain();
+                        currentIdx = 0;
+                        segmentProgress = 0.05f;
+                        Debug.Log("<color=yellow>无缝向下切换</color>");
+                    }
+                    else
+                    {
+                        segmentProgress = 1f;
+                    }
                 }
             }
 
-            UpdatePlayerPositionOnChain();
+            UpdatePosition();
         }
 
-        private void UpdatePlayerPositionOnChain()
+        private void UpdatePosition()
         {
-            Vector2 posA = chain.GetNodePos(currentIdx);
-            Vector2 posB = chain.GetNodePos(currentIdx + 1);
-            stateMachine.transform.position = Vector2.Lerp(posA, posB, segmentProgress);
+            Vector2 pA = currentChain.GetNodePos(currentIdx);
+            Vector2 pB = currentChain.GetNodePos(currentIdx + 1);
+            stateMachine.transform.position = Vector2.Lerp(pA, pB, segmentProgress);
         }
 
         public override void Exit()

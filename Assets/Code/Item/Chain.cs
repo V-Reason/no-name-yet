@@ -8,7 +8,7 @@ namespace RPG2D.Item
     [ExecuteAlways]
     [RequireComponent(typeof(LineRenderer))]
     [RequireComponent(typeof(EdgeCollider2D))]
-    public class Chain : MonoBehaviour, IGrabbable, IHookable
+    public class Chain : MonoBehaviour, IGrabbable
     {
         private EdgeCollider2D edgeCollider;
 
@@ -42,7 +42,7 @@ namespace RPG2D.Item
         [Tooltip("运动阻力（值越小阻力越大）")]
         [Range(0f, 1f)] public float drag = 0.95f;
         [Tooltip("物理计算密度")]
-        public int constraintIterations = 15; // 提高迭代次数让链子更结实
+        public int constraintIterations = 15;
 
         [Header("碰撞设置")]
         public bool enableCollision = true;
@@ -54,16 +54,14 @@ namespace RPG2D.Item
         private List<Node> nodes = new List<Node>();
         private LineRenderer lineRenderer;
 
-        [Header("钩子设置")]
-        [Tooltip("钩子实体")]
+        [Header("链条连接")]
+        [Tooltip("顶部的锚点")]
+        public Anchor parentAnchor;
+        [Tooltip("底部的钩子")]
         public ChainHook hookInstance;
-        [Tooltip("是否钩住")]
-        public bool isHooked = false;
-        private IHookable hookedTarget;
-        private Transform hookTransform;
-        // 获取钩子位置（最后一个节点）
-        public Vector2 GetHookPosition() => nodes[nodes.Count - 1].pos;
-        public IHookable HookedTarget => hookedTarget; // 暴露钩住的目标
+
+        // 尾部是否被固定（钩子钩住了东西）
+        public bool isFixedTail => hookInstance != null && hookInstance.hookedTarget != null;
 
         // --- IGrabbable 实现 ---
         public GrabType GrabType => GrabType.Linear;
@@ -79,7 +77,6 @@ namespace RPG2D.Item
         void Awake()
         {
             lineRenderer = GetComponent<LineRenderer>();
-            // 关键：强制使用世界坐标，防止渲染位置偏移或塌陷
             lineRenderer.useWorldSpace = true;
 
             if (Application.isPlaying)
@@ -140,11 +137,11 @@ namespace RPG2D.Item
             }
 
             // 被钩住就强制固定尾巴节点
-            if (isHooked && hookedTarget != null)
+            if (isFixedTail)
             {
                 var tail = nodes[nodes.Count - 1];
-                tail.pos = hookedTarget.GetHookAttachPosition();
-                tail.oldPos = tail.pos; // 消除惯性
+                tail.pos = hookInstance.hookedTarget.GetHookAttachPosition();
+                tail.oldPos = tail.pos;
                 nodes[nodes.Count - 1] = tail;
             }
 
@@ -161,7 +158,6 @@ namespace RPG2D.Item
             }
         }
 
-        // 修正后的约束算法：使用比例修正法
         private void ApplyConstraints()
         {
             for (int iter = 0; iter < constraintIterations; iter++)
@@ -172,9 +168,8 @@ namespace RPG2D.Item
                     Node b = nodes[i + 1];
 
                     float dist = Vector2.Distance(a.pos, b.pos);
-                    if (dist == 0) dist = 0.001f; // 防止除以0
+                    if (dist == 0) dist = 0.001f;
 
-                    // 计算误差比例
                     float diff = (segmentLength - dist) / dist;
                     Vector2 correction = (a.pos - b.pos) * diff * 0.5f;
 
@@ -238,10 +233,9 @@ namespace RPG2D.Item
 
                 hookInstance.transform.position = lastNodePos;
 
-                // 让钩子顺着链条的方向旋转（可选，增加美感）
                 Vector2 dir = (lastNodePos - secondLastNodePos).normalized;
                 float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-                hookInstance.transform.rotation = Quaternion.Euler(0, 0, angle - 90); // -90取决于图片朝向
+                hookInstance.transform.rotation = Quaternion.Euler(0, 0, angle - 90);
             }
         }
 
@@ -250,7 +244,7 @@ namespace RPG2D.Item
             if (anchor == null) return;
             if (lineRenderer == null) lineRenderer = GetComponent<LineRenderer>();
 
-            lineRenderer.useWorldSpace = true; // 预览时也确保使用世界坐标
+            lineRenderer.useWorldSpace = true;
             lineRenderer.positionCount = segmentCount;
             Vector2 startPos = anchor.position;
             Vector2 endPos = tailStartPoint != null ? (Vector2)tailStartPoint.position : startPos + Vector2.down * (segmentCount * segmentLength);
@@ -270,6 +264,42 @@ namespace RPG2D.Item
             }
         }
 
+        // ----- 连接/解扣逻辑 -----
+
+        /// <summary>
+        /// 同时断开上下两端的连接。
+        /// 向上：断开钩在我锚点上的钩子；向下：断开我自己的钩子。
+        /// </summary>
+        public void TryDisconnectAll()
+        {
+            // 向下断开：我的钩子钩住了别人
+            if (hookInstance != null)
+            {
+                hookInstance.Disconnect();
+            }
+
+            // 向上断开：别人的钩子钩住了我的锚点
+            if (parentAnchor != null && parentAnchor.incomingHook != null)
+            {
+                parentAnchor.incomingHook.Disconnect();
+            }
+        }
+
+        public void ApplySwingForce(Vector2 force)
+        {
+            if (isFixedTail) return;
+
+            for (int i = nodes.Count - 3; i < nodes.Count; i++)
+            {
+                if (i < 0) continue;
+                var node = nodes[i];
+                node.pos += force * Time.fixedDeltaTime;
+                nodes[i] = node;
+            }
+        }
+
+        // ----- 节点查询 -----
+
         public int GetClosestNodeIndex(Vector2 targetPos)
         {
             int closest = 0;
@@ -286,54 +316,5 @@ namespace RPG2D.Item
 
         public int NodeCount => nodes.Count;
         public float SegLength => segmentLength;
-        public ChainHook incomingHook; // 记录当前钩在自己身上的钩子
-
-        public void ConnectTo(IHookable target)
-        {
-            isHooked = true;
-            hookedTarget = target;
-            target.OnHooked(hookInstance); // 传入自己的钩子
-        }
-        // 实现 IHookable 接口需要的方法
-        public Vector2 GetHookAttachPosition() => GetHookPosition(); // 勾在链条末端（钩子位置）
-        public bool CanBeHooked() => true;
-
-        // 你代码中已经有了 OnHooked 和 OnUnhooked，但要确保它们是 public
-        public void OnHooked(ChainHook hook)
-        {
-            incomingHook = hook;
-            Debug.Log($"{name} 被 {hook.ownerChain.name} 勾住了");
-        }
-
-        public void OnUnhooked()
-        {
-            incomingHook = null;
-        }
-
-        // 修改 Disconnect，确保解开时调用目标的 OnUnhooked
-        public void Disconnect()
-        {
-            if (isHooked && hookedTarget != null)
-            {
-                hookedTarget.OnUnhooked();
-                isHooked = false;
-                hookedTarget = null;
-                Debug.Log($"{name} 已主动断开连接");
-            }
-        }
-
-        // 给玩家调用：甩动尾部
-        public void ApplySwingForce(Vector2 force)
-        {
-            if (isHooked) return; // 钩住了就甩不动
-                                  // 给最后几个节点施加力
-            for (int i = nodes.Count - 3; i < nodes.Count; i++)
-            {
-                if (i < 0) continue;
-                var node = nodes[i];
-                node.pos += force * Time.fixedDeltaTime;
-                nodes[i] = node;
-            }
-        }
     }
 }
