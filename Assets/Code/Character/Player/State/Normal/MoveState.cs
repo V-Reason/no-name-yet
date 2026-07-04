@@ -20,7 +20,7 @@ namespace RPG2D.Character.Player
                 stateMachine.SwitchState<IdleState>();
                 return;
             }
-            if (stateMachine.detector.checkData.CanGrabChain && UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.E))
+            if (stateMachine.detector.checkData.CanGrab && UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.E))
             {
                 stateMachine.SwitchState<ClimbState>();
                 return;

@@ -21,7 +21,7 @@ namespace RPG2D.Character.Player
                 stateMachine.SwitchState<MoveState>();
                 return; // 立即切断逻辑！！！
             }
-            if (stateMachine.detector.checkData.CanGrabChain && UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.E))
+            if (stateMachine.detector.checkData.CanGrab && UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.E))
             {
                 stateMachine.SwitchState<ClimbState>();
                 return;

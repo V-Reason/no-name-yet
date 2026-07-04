@@ -1,3 +1,7 @@
+using RPG2D.Core.Interaction;
+using RPG2D.Item;
+using UnityEngine;
+
 namespace RPG2D.Character.Player
 {
     public class ClimbState : PlayerState
@@ -10,14 +14,28 @@ namespace RPG2D.Character.Player
 
         public override void Enter()
         {
-            chain = stateMachine.detector.checkData.TargetChain;
-            // 锁定到最近的节点
-            currentIdx = chain.GetClosestNodeIndex(stateMachine.transform.position);
-            currentIdx = UnityEngine.Mathf.Min(currentIdx, chain.segmentCount - 2);
-            segmentProgress = 0.5f;
+            var grabbable = stateMachine.detector.checkData.TargetGrabbable;
 
+            Debug.Log($"{grabbable?.GetTransform()}");
+
+            if (grabbable.GrabType == GrabType.Static)
+            {
+                // 锁定到锚点
+                stateMachine.transform.position = grabbable.GetGrabPosition(stateMachine.transform.position);
+            }
+            else if (grabbable.GrabType == GrabType.Linear)
+            {
+                chain = grabbable as Chain;
+                // 锁定到最近的节点
+                currentIdx = chain.GetClosestNodeIndex(stateMachine.transform.position);
+                currentIdx = UnityEngine.Mathf.Min(currentIdx, chain.segmentCount - 2);
+                segmentProgress = 0.5f;
+
+            }
+
+            // 减速
             stateMachine.rb.velocity = UnityEngine.Vector2.zero;
-            stateMachine.rb.isKinematic = true; // 关键：物理静默，防止推开链子
+            stateMachine.rb.isKinematic = true; // 物理静默，防止推开链子
         }
 
         public override void OnUpdate()

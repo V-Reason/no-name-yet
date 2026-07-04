@@ -1,233 +1,257 @@
 using System.Collections.Generic;
+using RPG2D.Core.Interaction;
 using UnityEngine;
 
-[ExecuteAlways]
-[RequireComponent(typeof(LineRenderer))]
-[RequireComponent(typeof(EdgeCollider2D))]
-public class Chain : MonoBehaviour
+namespace RPG2D.Item
 {
-    private EdgeCollider2D edgeCollider;
 
-    [System.Serializable]
-    public struct Node
+    [ExecuteAlways]
+    [RequireComponent(typeof(LineRenderer))]
+    [RequireComponent(typeof(EdgeCollider2D))]
+    public class Chain : MonoBehaviour, IGrabbable
     {
-        public Vector2 pos;
-        public Vector2 oldPos;
-        public bool isFixed;
+        private EdgeCollider2D edgeCollider;
 
-        public Node(Vector2 initialPos, bool fixedPoint = false)
+        [System.Serializable]
+        public struct Node
         {
-            pos = oldPos = initialPos;
-            isFixed = fixedPoint;
-        }
-    }
+            public Vector2 pos;
+            public Vector2 oldPos;
+            public bool isFixed;
 
-    [Header("链条结构设置")]
-    [Tooltip("锚点")]
-    public Transform anchor;
-    [Tooltip("链条尾巴")]
-    public Transform tailStartPoint;
-    [Tooltip("链条段数")]
-    public int segmentCount = 10;
-    [Tooltip("每段长度")]
-    public float segmentLength = 1f;
-
-    [Header("物理参数设置")]
-    [Tooltip("重力参数")]
-    public Vector2 gravity = new Vector2(0, -1f);
-    [Tooltip("运动阻力（值越小阻力越大）")]
-    [Range(0f, 1f)] public float drag = 0.95f;
-    [Tooltip("物理计算密度")]
-    public int constraintIterations = 15; // 提高迭代次数让链子更结实
-
-    [Header("碰撞设置")]
-    public bool enableCollision = true;
-    [Tooltip("碰撞目标")]
-    public LayerMask collisionLayer;
-    [Tooltip("检测敏感度")]
-    public float nodeRadius = 0.15f;
-
-    private List<Node> nodes = new List<Node>();
-    private LineRenderer lineRenderer;
-
-    void Awake()
-    {
-        lineRenderer = GetComponent<LineRenderer>();
-        // 关键：强制使用世界坐标，防止渲染位置偏移或塌陷
-        lineRenderer.useWorldSpace = true;
-
-        if (Application.isPlaying)
-        {
-            InitChain();
-        }
-
-        edgeCollider = GetComponent<EdgeCollider2D>();
-        edgeCollider.isTrigger = true;
-    }
-
-    private void Update()
-    {
-        if (!Application.isPlaying)
-        {
-            UpdateEditorPreview();
-        }
-    }
-
-    private void FixedUpdate()
-    {
-        if (!Application.isPlaying) return;
-        if (nodes.Count == 0) InitChain();
-
-        UpdateNodes();
-        ApplyConstraints();
-        if (enableCollision) ResolveCollisions();
-        DrawChain();
-    }
-
-    [ContextMenu("Reset Chain")]
-    public void InitChain()
-    {
-        nodes.Clear();
-        Vector2 startPos = anchor != null ? (Vector2)anchor.position : (Vector2)transform.position;
-        Vector2 endPos = tailStartPoint != null ? (Vector2)tailStartPoint.position : startPos + Vector2.down * (segmentCount * segmentLength);
-
-        for (int i = 0; i < segmentCount; i++)
-        {
-            float t = (float)i / (segmentCount - 1);
-            Vector2 initialPos = Vector2.Lerp(startPos, endPos, t);
-            nodes.Add(new Node(initialPos, i == 0));
-        }
-
-        lineRenderer.positionCount = segmentCount;
-    }
-
-    private void UpdateNodes()
-    {
-        if (anchor != null)
-        {
-            var head = nodes[0];
-            head.pos = anchor.position;
-            nodes[0] = head;
-        }
-
-        for (int i = 0; i < nodes.Count; i++)
-        {
-            Node node = nodes[i];
-            if (node.isFixed) continue;
-
-            Vector2 velocity = (node.pos - node.oldPos) * drag;
-            node.oldPos = node.pos;
-            node.pos += velocity + gravity * Time.fixedDeltaTime;
-            nodes[i] = node;
-        }
-    }
-
-    // 修正后的约束算法：使用比例修正法
-    private void ApplyConstraints()
-    {
-        for (int iter = 0; iter < constraintIterations; iter++)
-        {
-            for (int i = 0; i < nodes.Count - 1; i++)
+            public Node(Vector2 initialPos, bool fixedPoint = false)
             {
-                Node a = nodes[i];
-                Node b = nodes[i + 1];
-
-                float dist = Vector2.Distance(a.pos, b.pos);
-                if (dist == 0) dist = 0.001f; // 防止除以0
-
-                // 计算误差比例
-                float diff = (segmentLength - dist) / dist;
-                Vector2 correction = (a.pos - b.pos) * diff * 0.5f;
-
-                if (a.isFixed)
-                {
-                    b.pos -= correction * 2f;
-                }
-                else if (b.isFixed)
-                {
-                    a.pos += correction * 2f;
-                }
-                else
-                {
-                    a.pos += correction;
-                    b.pos -= correction;
-                }
-
-                nodes[i] = a;
-                nodes[i + 1] = b;
+                pos = oldPos = initialPos;
+                isFixed = fixedPoint;
             }
         }
-    }
 
-    private void ResolveCollisions()
-    {
-        for (int i = 0; i < nodes.Count; i++)
+        [Header("链条结构设置")]
+        [Tooltip("锚点")]
+        public Transform anchor;
+        [Tooltip("链条尾巴")]
+        public Transform tailStartPoint;
+        [Tooltip("链条段数")]
+        public int segmentCount = 10;
+        [Tooltip("每段长度")]
+        public float segmentLength = 1f;
+
+        [Header("物理参数设置")]
+        [Tooltip("重力参数")]
+        public Vector2 gravity = new Vector2(0, -1f);
+        [Tooltip("运动阻力（值越小阻力越大）")]
+        [Range(0f, 1f)] public float drag = 0.95f;
+        [Tooltip("物理计算密度")]
+        public int constraintIterations = 15; // 提高迭代次数让链子更结实
+
+        [Header("碰撞设置")]
+        public bool enableCollision = true;
+        [Tooltip("碰撞目标")]
+        public LayerMask collisionLayer;
+        [Tooltip("检测敏感度")]
+        public float nodeRadius = 0.15f;
+
+        private List<Node> nodes = new List<Node>();
+        private LineRenderer lineRenderer;
+
+
+        // --- IGrabbable 实现 ---
+        public GrabType GrabType => GrabType.Linear;
+
+        public bool CanGrab() => true;
+
+        public Transform GetTransform() => transform;
+
+        public Vector2 GetGrabPosition(Vector2 playerPosition)
         {
-            Node node = nodes[i];
-            if (node.isFixed) continue;
+            int index = GetClosestNodeIndex(playerPosition);
+            return GetNodePos(index);
+        }
+        // -----------------------
 
-            Collider2D hit = Physics2D.OverlapCircle(node.pos, nodeRadius, collisionLayer);
-            if (hit != null)
+        void Awake()
+        {
+            lineRenderer = GetComponent<LineRenderer>();
+            // 关键：强制使用世界坐标，防止渲染位置偏移或塌陷
+            lineRenderer.useWorldSpace = true;
+
+            if (Application.isPlaying)
             {
-                Vector2 closestPoint = hit.ClosestPoint(node.pos);
-                Vector2 dir = (node.pos - closestPoint).normalized;
-                if (dir == Vector2.zero) dir = Vector2.up;
-
-                node.pos = closestPoint + dir * nodeRadius;
-                node.oldPos = Vector2.Lerp(node.oldPos, node.pos, 0.5f);
+                InitChain();
             }
-            nodes[i] = node;
-        }
-    }
 
-    private void DrawChain()
-    {
-        if (lineRenderer.positionCount != nodes.Count) lineRenderer.positionCount = nodes.Count;
-        Vector2[] colliderPoints = new Vector2[nodes.Count];
-        for (int i = 0; i < nodes.Count; i++)
+            edgeCollider = GetComponent<EdgeCollider2D>();
+            edgeCollider.isTrigger = true;
+        }
+
+        private void Update()
         {
-            lineRenderer.SetPosition(i, nodes[i].pos);
-            colliderPoints[i] = transform.InverseTransformPoint(nodes[i].pos);
+            if (!Application.isPlaying)
+            {
+                UpdateEditorPreview();
+            }
         }
-        edgeCollider.points = colliderPoints;
-    }
 
-    private void UpdateEditorPreview()
-    {
-        if (anchor == null) return;
-        if (lineRenderer == null) lineRenderer = GetComponent<LineRenderer>();
-
-        lineRenderer.useWorldSpace = true; // 预览时也确保使用世界坐标
-        lineRenderer.positionCount = segmentCount;
-        Vector2 startPos = anchor.position;
-        Vector2 endPos = tailStartPoint != null ? (Vector2)tailStartPoint.position : startPos + Vector2.down * (segmentCount * segmentLength);
-
-        for (int i = 0; i < segmentCount; i++)
+        private void FixedUpdate()
         {
-            float t = (float)i / (segmentCount - 1);
-            lineRenderer.SetPosition(i, Vector2.Lerp(startPos, endPos, t));
-        }
-    }
+            if (!Application.isPlaying) return;
+            if (nodes.Count == 0) InitChain();
 
-    private void OnValidate()
-    {
-        if (!Application.isPlaying)
+            UpdateNodes();
+            ApplyConstraints();
+            if (enableCollision) ResolveCollisions();
+            DrawChain();
+        }
+
+        [ContextMenu("Reset Chain")]
+        public void InitChain()
         {
-            UpdateEditorPreview();
-        }
-    }
+            nodes.Clear();
+            Vector2 startPos = anchor != null ? (Vector2)anchor.position : (Vector2)transform.position;
+            Vector2 endPos = tailStartPoint != null ? (Vector2)tailStartPoint.position : startPos + Vector2.down * (segmentCount * segmentLength);
 
-    public int GetClosestNodeIndex(Vector2 targetPos)
-    {
-        int closest = 0;
-        float minDist = float.MaxValue;
-        for (int i = 0; i < nodes.Count; i++)
+            for (int i = 0; i < segmentCount; i++)
+            {
+                float t = (float)i / (segmentCount - 1);
+                Vector2 initialPos = Vector2.Lerp(startPos, endPos, t);
+                nodes.Add(new Node(initialPos, i == 0));
+            }
+
+            lineRenderer.positionCount = segmentCount;
+        }
+
+        private void UpdateNodes()
         {
-            float d = Vector2.Distance(targetPos, nodes[i].pos);
-            if (d < minDist) { minDist = d; closest = i; }
+            if (anchor != null)
+            {
+                var head = nodes[0];
+                head.pos = anchor.position;
+                nodes[0] = head;
+            }
+
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                Node node = nodes[i];
+                if (node.isFixed) continue;
+
+                Vector2 velocity = (node.pos - node.oldPos) * drag;
+                node.oldPos = node.pos;
+                node.pos += velocity + gravity * Time.fixedDeltaTime;
+                nodes[i] = node;
+            }
         }
-        return closest;
+
+        // 修正后的约束算法：使用比例修正法
+        private void ApplyConstraints()
+        {
+            for (int iter = 0; iter < constraintIterations; iter++)
+            {
+                for (int i = 0; i < nodes.Count - 1; i++)
+                {
+                    Node a = nodes[i];
+                    Node b = nodes[i + 1];
+
+                    float dist = Vector2.Distance(a.pos, b.pos);
+                    if (dist == 0) dist = 0.001f; // 防止除以0
+
+                    // 计算误差比例
+                    float diff = (segmentLength - dist) / dist;
+                    Vector2 correction = (a.pos - b.pos) * diff * 0.5f;
+
+                    if (a.isFixed)
+                    {
+                        b.pos -= correction * 2f;
+                    }
+                    else if (b.isFixed)
+                    {
+                        a.pos += correction * 2f;
+                    }
+                    else
+                    {
+                        a.pos += correction;
+                        b.pos -= correction;
+                    }
+
+                    nodes[i] = a;
+                    nodes[i + 1] = b;
+                }
+            }
+        }
+
+        private void ResolveCollisions()
+        {
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                Node node = nodes[i];
+                if (node.isFixed) continue;
+
+                Collider2D hit = Physics2D.OverlapCircle(node.pos, nodeRadius, collisionLayer);
+                if (hit != null)
+                {
+                    Vector2 closestPoint = hit.ClosestPoint(node.pos);
+                    Vector2 dir = (node.pos - closestPoint).normalized;
+                    if (dir == Vector2.zero) dir = Vector2.up;
+
+                    node.pos = closestPoint + dir * nodeRadius;
+                    node.oldPos = Vector2.Lerp(node.oldPos, node.pos, 0.5f);
+                }
+                nodes[i] = node;
+            }
+        }
+
+        private void DrawChain()
+        {
+            if (lineRenderer.positionCount != nodes.Count) lineRenderer.positionCount = nodes.Count;
+            Vector2[] colliderPoints = new Vector2[nodes.Count];
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                lineRenderer.SetPosition(i, nodes[i].pos);
+                colliderPoints[i] = transform.InverseTransformPoint(nodes[i].pos);
+            }
+            edgeCollider.points = colliderPoints;
+        }
+
+        private void UpdateEditorPreview()
+        {
+            if (anchor == null) return;
+            if (lineRenderer == null) lineRenderer = GetComponent<LineRenderer>();
+
+            lineRenderer.useWorldSpace = true; // 预览时也确保使用世界坐标
+            lineRenderer.positionCount = segmentCount;
+            Vector2 startPos = anchor.position;
+            Vector2 endPos = tailStartPoint != null ? (Vector2)tailStartPoint.position : startPos + Vector2.down * (segmentCount * segmentLength);
+
+            for (int i = 0; i < segmentCount; i++)
+            {
+                float t = (float)i / (segmentCount - 1);
+                lineRenderer.SetPosition(i, Vector2.Lerp(startPos, endPos, t));
+            }
+        }
+
+        private void OnValidate()
+        {
+            if (!Application.isPlaying)
+            {
+                UpdateEditorPreview();
+            }
+        }
+
+        public int GetClosestNodeIndex(Vector2 targetPos)
+        {
+            int closest = 0;
+            float minDist = float.MaxValue;
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                float d = Vector2.Distance(targetPos, nodes[i].pos);
+                if (d < minDist) { minDist = d; closest = i; }
+            }
+            return closest;
+        }
+
+        public Vector2 GetNodePos(int index) => nodes[Mathf.Clamp(index, 0, nodes.Count - 1)].pos;
+
+        public int NodeCount => nodes.Count;
+        public float SegLength => segmentLength;
     }
 
-    public Vector2 GetNodePos(int index) => nodes[Mathf.Clamp(index, 0, nodes.Count - 1)].pos;
 }
