@@ -37,7 +37,7 @@ namespace RPG2D.Character.Monster.Piranha
         /// </summary>
         private void TryForwardCapture(Collider2D other)
         {
-            if (piranhaAI == null || other == null)
+            if (piranhaAI == null || other == null || !other.CompareTag("Player"))
             {
                 return;
             }

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using RPG2D.Core.Checker;
+using RPG2D.Core.Interaction;
 using UnityEngine;
 
 namespace RPG2D.Pyhsics.Attraction
@@ -9,7 +10,7 @@ namespace RPG2D.Pyhsics.Attraction
     /// </summary>
     public class MagnetAttractor2D : MultiCircleChecker
     {
-        private readonly HashSet<Rigidbody2D> appliedRigidbodies = new();
+        private readonly HashSet<IForceReceiver> appliedReceivers = new();
 
         [Header("磁铁吸引力")]
         [SerializeField, Min(0f)]
@@ -64,49 +65,49 @@ namespace RPG2D.Pyhsics.Attraction
         }
 
         /// <summary>
-        /// 检测当前圆形范围内的目标刚体, 并对每个刚体最多施加一次吸引力.
+        /// 检测当前圆形范围内的目标, 并对每个受力接口对象最多施加一次吸引力.
         /// </summary>
         private void ApplyAttractionToTargets()
         {
-            appliedRigidbodies.Clear();
+            appliedReceivers.Clear();
             Check();
 
             for (int i = 0; i < hitCnt; i++)
             {
                 Collider2D targetCollider = this[i];
-                Rigidbody2D targetRb = targetCollider != null ? targetCollider.attachedRigidbody : null;
-                if (!CanApplyAttraction(targetRb))
+                if (!ForceReceiverResolver2D.TryGetUniqueReceiver(targetCollider, appliedReceivers, out IForceReceiver receiver)
+                    || !CanApplyAttraction(receiver))
                 {
                     continue;
                 }
 
-                Vector2 force = GetForceAt(targetRb.position);
+                Vector2 targetPosition = ForceReceiverResolver2D.GetForceSamplePosition(targetCollider);
+                Vector2 force = GetForceAt(targetPosition);
                 if (force.sqrMagnitude <= Mathf.Epsilon)
                 {
                     continue;
                 }
 
-                targetRb.AddForce(force, ForceMode2D.Force);
-                appliedRigidbodies.Add(targetRb);
+                receiver.ApplyForce(force);
             }
         }
 
         /// <summary>
-        /// 判断刚体是否可以在当前物理帧接受吸引力, 避免无效目标和重复施力.
+        /// 判断目标是否可以在当前物理帧接受吸引力, 支持按受力接口暴露的速度做上限判断.
         /// </summary>
-        private bool CanApplyAttraction(Rigidbody2D targetRb)
+        private bool CanApplyAttraction(IForceReceiver receiver)
         {
-            if (targetRb == null || targetRb.bodyType == RigidbodyType2D.Static || appliedRigidbodies.Contains(targetRb))
+            if (receiver == null)
             {
                 return false;
             }
 
-            if (maxTargetSpeed <= 0f)
+            if (maxTargetSpeed <= 0f || receiver is not IForceReceiverVelocitySource velocitySource)
             {
                 return true;
             }
 
-            return targetRb.velocity.sqrMagnitude < maxTargetSpeed * maxTargetSpeed;
+            return velocitySource.Velocity.sqrMagnitude < maxTargetSpeed * maxTargetSpeed;
         }
 
         /// <summary>

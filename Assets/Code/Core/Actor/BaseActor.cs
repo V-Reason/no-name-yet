@@ -1,5 +1,6 @@
 using RPG2D.Core.Controller;
 using RPG2D.Core.Data;
+using RPG2D.Core.Interaction;
 using RPG2D.Core.StateMachine;
 using UnityEngine;
 
@@ -23,7 +24,7 @@ namespace RPG2D.Core.Actor
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(CapsuleCollider2D))]
     public abstract class BaseActor<TActorData> :
-        MonoBehaviour, IActor
+        MonoBehaviour, IActor, IForceReceiver, IForceReceiverVelocitySource
         where TActorData : ActorData
     {
         // 内部参数
@@ -32,6 +33,7 @@ namespace RPG2D.Core.Actor
 
         // 对外接口
         public Rigidbody2D rb { get; protected set; }
+        public Vector2 Velocity => rb != null ? rb.velocity : Vector2.zero;
         public CapsuleCollider2D cld { get; protected set; }
         [HideInInspector]
         public Direction currFacing { get; protected set; } = Direction.Right;

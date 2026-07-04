@@ -151,18 +151,18 @@ MonoBehaviour:
   autoFlipOffset: 0
   targetLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   drawGizmos: 1
   untouchedColor: {r: 1, g: 0, b: 0, a: 1}
   touchedColor: {r: 0, g: 1, b: 0, a: 1}
   wireSphereRadius: 0.05
   gizmosAlpha: 1
   MAX_BUFFER_COUNT: 12
-  maxAttractionForce: 5
+  maxAttractionForce: 2
   useDistanceFalloff: 1
-  edgeForceMultiplier: 0.039
+  edgeForceMultiplier: 0.131
   minimumForceDistance: 0.05
-  maxTargetSpeed: 0
+  maxTargetSpeed: 1
 --- !u!58 &5759211677165390413
 CircleCollider2D:
   m_ObjectHideFlags: 0
