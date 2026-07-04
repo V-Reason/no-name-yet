@@ -17,24 +17,46 @@ namespace RPG2D.Character.Player
         public override void Enter()
         {
             base.Enter();
-            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsClimbing, true);
 
             var target = stateMachine.detector.checkData.TargetGrabbable;
-            TransitionToGrabbable(target);
+            if (!TryTransitionToGrabbable(target))
+            {
+                stateMachine.SwitchState<IdleState>();
+                return;
+            }
+
+            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsClimbing, true);
         }
 
-        private void TransitionToGrabbable(IGrabbable target)
+        /// <summary>
+        /// 尝试把当前可抓目标转换为攀附上下文, 目标无效或链条数据不足时拒绝进入攀附状态.
+        /// </summary>
+        private bool TryTransitionToGrabbable(IGrabbable target)
         {
-            if (target == null) return;
+            if (target == null || !target.CanGrab())
+            {
+                return false;
+            }
 
             if (target is Anchor anchor)
             {
                 currentChain = anchor.attachedChain;
+                if (!IsValidClimbChain(currentChain))
+                {
+                    currentChain = null;
+                    return false;
+                }
+
                 currentIdx = 0;
                 segmentProgress = 0f;
             }
             else if (target is Chain chain)
             {
+                if (!IsValidClimbChain(chain))
+                {
+                    return false;
+                }
+
                 currentChain = chain;
                 currentIdx = currentChain.GetClosestNodeIndex(stateMachine.transform.position);
                 currentIdx = Mathf.Clamp(currentIdx, 0, currentChain.NodeCount - 2);
@@ -51,6 +73,16 @@ namespace RPG2D.Character.Player
                 stateMachine.rb.velocity = Vector2.zero;
                 stateMachine.rb.isKinematic = true;
             }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 判断链条是否具备攀爬所需的基本节点数据, 避免进入没有可移动路径的攀附状态.
+        /// </summary>
+        private static bool IsValidClimbChain(Chain chain)
+        {
+            return chain != null && chain.NodeCount >= 2 && chain.SegLength > Mathf.Epsilon;
         }
 
         public override void OnUpdate()

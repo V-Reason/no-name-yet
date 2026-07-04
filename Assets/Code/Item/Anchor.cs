@@ -17,7 +17,15 @@ namespace RPG2D.Item
         private SpriteRenderer spriteRenderer;
 
         public GrabType GrabType => GrabType.Static;
-        public bool CanGrab() => true;
+        public bool CanGrab()
+        {
+            if (attachedChain == null)
+            {
+                attachedChain = GetComponentInChildren<Chain>();
+            }
+
+            return attachedChain != null;
+        }
         public Transform GetTransform() => transform;
         public Vector2 GetGrabPosition(Vector2 playerPos) => transform.position;
 
