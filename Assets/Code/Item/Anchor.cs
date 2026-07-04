@@ -4,13 +4,19 @@ using RPG2D.Core.Interaction;
 namespace RPG2D.Item
 {
     [RequireComponent(typeof(CircleCollider2D))]
-    public class Anchor : MonoBehaviour, IGrabbable
+    public class Anchor : MonoBehaviour, IGrabbable, IHookable
     {
         public GrabType GrabType => GrabType.Static;
         public bool CanGrab() => true;
         public Transform GetTransform() => transform;
 
         private CircleCollider2D cld => GetComponent<CircleCollider2D>();
+
+        public Vector2 GetHookAttachPosition() => transform.position;
+        public bool CanBeHooked() => true;
+
+        public void OnHooked(ChainHook hook) { /* 可以在这里播放音效或特效 */ }
+        public void OnUnhooked() { }
 
         private void Awake()
         {

@@ -1,3 +1,4 @@
+using RPG2D.Core.Data;
 using RPG2D.Core.Interaction;
 using RPG2D.Item;
 using UnityEngine;
@@ -47,7 +48,36 @@ namespace RPG2D.Character.Player
                 return;
             }
 
+            HandleSwingLogic();
             HandleClimbMovement();
+        }
+
+        // 在 ClimbState.cs 的 OnUpdate 中添加：
+        private void HandleSwingLogic()
+        {
+            // 只有在链条顶端（锚点）才能甩
+            if (currentIdx > 1) return;
+
+            if (Input.GetMouseButton(0)) // 按住左键甩动
+            {
+                Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                Vector2 dir = (mousePos - (Vector2)stateMachine.transform.position).normalized;
+
+                // 这里的力大小可以根据需求调整
+                float swingPower = stateMachine.actorData.swingPower;
+                chain.ApplySwingForce(dir * swingPower * Mathf.Abs(Mathf.Sin(Time.time)));
+            }
+
+            // 解开钩子逻辑
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                // 检测玩家是否在钩子附近
+                float distToHook = Vector2.Distance(stateMachine.transform.position, chain.GetHookPosition());
+                if (distToHook < 1.5f) // 距离阈值
+                {
+                    chain.Disconnect();
+                }
+            }
         }
 
         private void HandleClimbMovement()

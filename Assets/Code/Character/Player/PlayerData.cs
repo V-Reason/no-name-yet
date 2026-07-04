@@ -13,5 +13,8 @@ namespace RPG2D.Character.Player
         [Header("攀爬数值")]
         public float climbSpeed = 3f;
         public float grabRange = 0.5f;
+
+        [Header("甩链力度")]
+        public float swingPower = 5f;
     }
 }

@@ -54,6 +54,16 @@ namespace RPG2D.Item
         private List<Node> nodes = new List<Node>();
         private LineRenderer lineRenderer;
 
+        [Header("钩子设置")]
+        [Tooltip("钩子实体")]
+        public ChainHook hookInstance;
+        [Tooltip("是否钩住")]
+        public bool isHooked = false;
+        private IHookable hookedTarget;
+        private Transform hookTransform;
+        // 获取钩子位置（最后一个节点）
+        public Vector2 GetHookPosition() => nodes[nodes.Count - 1].pos;
+
 
         // --- IGrabbable 实现 ---
         public GrabType GrabType => GrabType.Linear;
@@ -82,6 +92,8 @@ namespace RPG2D.Item
 
             edgeCollider = GetComponent<EdgeCollider2D>();
             edgeCollider.isTrigger = true;
+
+            hookInstance = GetComponentInChildren<ChainHook>();
         }
 
         private void Update()
@@ -103,7 +115,7 @@ namespace RPG2D.Item
             DrawChain();
         }
 
-        [ContextMenu("Reset Chain")]
+        [ContextMenu("重置链条")]
         public void InitChain()
         {
             nodes.Clear();
@@ -122,6 +134,7 @@ namespace RPG2D.Item
 
         private void UpdateNodes()
         {
+            // 头节点固定在锚点
             if (anchor != null)
             {
                 var head = nodes[0];
@@ -129,6 +142,16 @@ namespace RPG2D.Item
                 nodes[0] = head;
             }
 
+            // 被钩住就强制固定尾巴节点
+            if (isHooked && hookedTarget != null)
+            {
+                var tail = nodes[nodes.Count - 1];
+                tail.pos = hookedTarget.GetHookAttachPosition();
+                tail.oldPos = tail.pos; // 消除惯性
+                nodes[nodes.Count - 1] = tail;
+            }
+
+            // 物理模拟
             for (int i = 0; i < nodes.Count; i++)
             {
                 Node node = nodes[i];
@@ -209,6 +232,20 @@ namespace RPG2D.Item
                 colliderPoints[i] = transform.InverseTransformPoint(nodes[i].pos);
             }
             edgeCollider.points = colliderPoints;
+
+            // 更新钩子物体的位置和旋转
+            if (hookInstance != null && nodes.Count > 0)
+            {
+                Vector2 lastNodePos = nodes[nodes.Count - 1].pos;
+                Vector2 secondLastNodePos = nodes[nodes.Count - 2].pos;
+
+                hookInstance.transform.position = lastNodePos;
+
+                // 让钩子顺着链条的方向旋转（可选，增加美感）
+                Vector2 dir = (lastNodePos - secondLastNodePos).normalized;
+                float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+                hookInstance.transform.rotation = Quaternion.Euler(0, 0, angle - 90); // -90取决于图片朝向
+            }
         }
 
         private void UpdateEditorPreview()
@@ -252,6 +289,34 @@ namespace RPG2D.Item
 
         public int NodeCount => nodes.Count;
         public float SegLength => segmentLength;
+
+        public void ConnectTo(IHookable target)
+        {
+            isHooked = true;
+            hookedTarget = target;
+            target.OnHooked(null); // 此处可传入hook引用
+        }
+
+        public void Disconnect()
+        {
+            if (isHooked && hookedTarget != null) hookedTarget.OnUnhooked();
+            isHooked = false;
+            hookedTarget = null;
+        }
+
+        // 给玩家调用：甩动尾部
+        public void ApplySwingForce(Vector2 force)
+        {
+            if (isHooked) return; // 钩住了就甩不动
+                                  // 给最后几个节点施加力
+            for (int i = nodes.Count - 3; i < nodes.Count; i++)
+            {
+                if (i < 0) continue;
+                var node = nodes[i];
+                node.pos += force * Time.fixedDeltaTime;
+                nodes[i] = node;
+            }
+        }
     }
 
 }
