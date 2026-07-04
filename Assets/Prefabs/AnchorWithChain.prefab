@@ -84,6 +84,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   attachedChain: {fileID: 6870423168837514536}
   incomingHook: {fileID: 0}
+  anchorSprites:
+  - {fileID: 21300000, guid: 2527ac1b52a79964f98ca219f2f9d61d, type: 3}
+  - {fileID: 21300000, guid: d944add7649c5044e9481f4b667cabff, type: 3}
+  - {fileID: 21300000, guid: c95b72b324294fc479801c1af111eaeb, type: 3}
+  selectedSpriteIndex: 0
+  sortingOrder: 2
 --- !u!212 &7142390502590278202
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -124,13 +130,13 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: f032b5e38e4bc1c4db3d75854cfa86ac, type: 3}
+  m_SortingOrder: 2
+  m_Sprite: {fileID: 21300000, guid: 2527ac1b52a79964f98ca219f2f9d61d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 0.4, y: 0.4}
+  m_Size: {x: 1.14, y: 1.07}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -189,6 +195,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   reconnectDelay: 0.8
+  hookSprite: {fileID: 21300000, guid: 395afab63db707842b96d13564331890, type: 3}
+  sortingOrder: 1
 --- !u!212 &1735093463547036464
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -229,8 +237,8 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: f032b5e38e4bc1c4db3d75854cfa86ac, type: 3}
+  m_SortingOrder: 1
+  m_Sprite: {fileID: 21300000, guid: 395afab63db707842b96d13564331890, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -332,7 +340,7 @@ LineRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 6c9e06f5d9528374eb22d1d60a4a5281, type: 2}
+  - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -372,7 +380,16 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.10185242
+        value: 0.3
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0.33333334
+        outWeight: 0.33333334
+      - serializedVersion: 3
+        time: 1
+        value: 0.3
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -415,7 +432,7 @@ LineRenderer:
     numCornerVertices: 0
     numCapVertices: 0
     alignment: 0
-    textureMode: 0
+    textureMode: 1
     textureScale: {x: 1, y: 1}
     shadowBias: 0.5
     generateLightingData: 0
@@ -450,6 +467,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   nodeRadius: 0.3
+  chainTexture: {fileID: 2800000, guid: 13c6c1cac8db00d43bd4e158492b164a, type: 3}
+  chainWidth: 0.3
+  sortingOrder: 0
   isHooked: 0
 --- !u!68 &9049740961060424749
 EdgeCollider2D:

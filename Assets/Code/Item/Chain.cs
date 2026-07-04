@@ -52,9 +52,16 @@ namespace RPG2D.Item
         [Tooltip("检测敏感度")]
         public float nodeRadius = 0.15f;
 
+        [Header("视觉表现")]
+        public Texture2D chainTexture;
+        [Range(0.01f, 0.5f)]
+        public float chainWidth = 0.1f;
+        public int sortingOrder = 0;
+
         private List<Node> nodes = new List<Node>();
         private LineRenderer lineRenderer;
         private EdgeCollider2D edgeCollider;
+        private Material chainMaterial;
 
         [Header("链条连接")]
         [Tooltip("钩子是否处于连接状态")]
@@ -109,6 +116,16 @@ namespace RPG2D.Item
             lineRenderer = GetComponent<LineRenderer>();
             edgeCollider = GetComponent<EdgeCollider2D>();
             lineRenderer.useWorldSpace = true;
+
+            if (chainTexture != null)
+            {
+                chainTexture.wrapMode = TextureWrapMode.Repeat;
+                chainMaterial = new Material(Shader.Find("Unlit/Transparent"));
+                chainMaterial.mainTexture = chainTexture;
+                chainMaterial.color = Color.white;
+                lineRenderer.material = chainMaterial;
+                lineRenderer.textureMode = LineTextureMode.Tile;
+            }
 
             if (Application.isPlaying)
             {
@@ -250,13 +267,23 @@ namespace RPG2D.Item
         private void DrawChain()
         {
             if (lineRenderer.positionCount != nodes.Count) lineRenderer.positionCount = nodes.Count;
+            lineRenderer.startWidth = chainWidth;
+            lineRenderer.endWidth = chainWidth;
+            lineRenderer.sortingOrder = sortingOrder;
+
             Vector2[] colliderPoints = new Vector2[nodes.Count];
+            float totalDist = 0f;
             for (int i = 0; i < nodes.Count; i++)
             {
                 lineRenderer.SetPosition(i, nodes[i].pos);
                 colliderPoints[i] = transform.InverseTransformPoint(nodes[i].pos);
+                if (i > 0)
+                    totalDist += Vector2.Distance(nodes[i].pos, nodes[i - 1].pos);
             }
             edgeCollider.points = colliderPoints;
+
+            if (chainMaterial != null && segmentLength > 0)
+                chainMaterial.mainTextureScale = new Vector2(1f / segmentLength, 1);
 
             // 更新钩子物体的位置和旋转
             if (hookInstance != null && nodes.Count > 0)
@@ -268,7 +295,7 @@ namespace RPG2D.Item
 
                 Vector2 dir = (lastNodePos - secondLastNodePos).normalized;
                 float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-                hookInstance.transform.rotation = Quaternion.Euler(0, 0, angle - 90);
+                hookInstance.transform.rotation = Quaternion.Euler(0, 0, angle + 90);
             }
         }
 
@@ -276,7 +303,26 @@ namespace RPG2D.Item
         {
             if (lineRenderer == null) lineRenderer = GetComponent<LineRenderer>();
 
+            lineRenderer.startWidth = chainWidth;
+            lineRenderer.endWidth = chainWidth;
+            lineRenderer.sortingOrder = sortingOrder;
             lineRenderer.positionCount = segmentCount;
+
+            if (chainTexture != null && (chainMaterial == null || chainMaterial.mainTexture != chainTexture))
+            {
+                if (chainMaterial != null)
+                    DestroyImmediate(chainMaterial);
+                chainTexture.wrapMode = TextureWrapMode.Repeat;
+                chainMaterial = new Material(Shader.Find("Unlit/Transparent"));
+                chainMaterial.mainTexture = chainTexture;
+                chainMaterial.color = Color.white;
+                lineRenderer.material = chainMaterial;
+                lineRenderer.textureMode = LineTextureMode.Tile;
+            }
+
+            if (chainMaterial != null && segmentLength > 0)
+                chainMaterial.mainTextureScale = new Vector2(1f / segmentLength, 1);
+
             Vector2 startPos = transform.position;
             Vector2 direction = Vector2.down;
 
@@ -300,6 +346,15 @@ namespace RPG2D.Item
                 Gizmos.color = Color.red;
                 Gizmos.DrawWireSphere(nodes[hookedNodeIndex].pos, nodeRadius * 2f);
             }
+        }
+
+        private void OnDestroy()
+        {
+            if (chainMaterial == null) return;
+            if (Application.isPlaying)
+                Destroy(chainMaterial);
+            else
+                DestroyImmediate(chainMaterial);
         }
 
         private void OnValidate()

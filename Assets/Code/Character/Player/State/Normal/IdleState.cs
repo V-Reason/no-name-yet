@@ -1,8 +1,5 @@
 namespace RPG2D.Character.Player
 {
-    /// <summary>
-    /// 待机状态
-    /// </summary>
     public class IdleState : PlayerState
     {
         public IdleState(StateMachine stateMachine) : base(stateMachine) { }
@@ -10,7 +7,6 @@ namespace RPG2D.Character.Player
         public override void Enter()
         {
             base.Enter();
-            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsIdle, true);
         }
 
         public override void OnUpdate()
@@ -19,7 +15,7 @@ namespace RPG2D.Character.Player
             if (stateMachine.detector.IsMoving)
             {
                 stateMachine.SwitchState<MoveState>();
-                return; // 立即切断逻辑！！！
+                return;
             }
             if (stateMachine.detector.checkData.CanGrab && UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.E))
             {
@@ -31,7 +27,6 @@ namespace RPG2D.Character.Player
         public override void Exit()
         {
             base.Exit();
-            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsIdle, false);
         }
     }
 }

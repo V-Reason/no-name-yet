@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace RPG2D.Item
 {
+    [ExecuteAlways]
     [RequireComponent(typeof(CircleCollider2D))]
     public class ChainHook : MonoBehaviour, IHookable
     {
@@ -15,7 +16,12 @@ namespace RPG2D.Item
         public float reconnectDelay = 1f;
         private float cooldownTimer;
 
+        [Header("视觉表现")]
+        public Sprite hookSprite;
+        public int sortingOrder = 1;
+
         private CircleCollider2D myCollider;
+        private SpriteRenderer spriteRenderer;
         private Vector2 lastPosition;
 
         private void Awake()
@@ -23,15 +29,32 @@ namespace RPG2D.Item
             myCollider = GetComponent<CircleCollider2D>();
             myCollider.isTrigger = true;
             myCollider.radius = detectRadius;
+
+            SetupSpriteRenderer();
+        }
+
+        private void SetupSpriteRenderer()
+        {
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            if (spriteRenderer == null)
+                spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+
+            if (hookSprite != null)
+                spriteRenderer.sprite = hookSprite;
+
+            spriteRenderer.sortingOrder = sortingOrder;
         }
 
         private void Start()
         {
+            if (!Application.isPlaying) return;
             lastPosition = transform.position;
         }
 
         private void Update()
         {
+            if (!Application.isPlaying) return;
+
             if (cooldownTimer > 0)
             {
                 cooldownTimer -= Time.deltaTime;
@@ -129,6 +152,11 @@ namespace RPG2D.Item
         public void OnUnhooked() => incomingHook = null;
         public Chain GetRelatedChain() => ownerChain;
         public HookPointType GetHookPointType() => HookPointType.Tail;
+
+        private void OnValidate()
+        {
+            SetupSpriteRenderer();
+        }
 
         private void OnDrawGizmos()
         {

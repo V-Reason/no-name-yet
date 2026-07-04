@@ -16,6 +16,9 @@ namespace RPG2D.Character.Player
 
         public override void Enter()
         {
+            base.Enter();
+            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsClimbing, true);
+
             var target = stateMachine.detector.checkData.TargetGrabbable;
             TransitionToGrabbable(target);
         }
@@ -74,9 +77,26 @@ namespace RPG2D.Character.Player
             }
         }
 
+        private bool isSwinging;
+
         private void HandleSwingLogic()
         {
-            if (currentIdx <= 1 && Input.GetMouseButton(0))
+            bool shouldSwing = currentIdx <= 1 && Input.GetMouseButton(0);
+
+            if (shouldSwing && !isSwinging)
+            {
+                isSwinging = true;
+                stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsClimbing, false);
+                stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsSwinging, true);
+            }
+            else if (!shouldSwing && isSwinging)
+            {
+                isSwinging = false;
+                stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsSwinging, false);
+                stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsClimbing, true);
+            }
+
+            if (shouldSwing)
             {
                 Vector2 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 currentChain.ApplySwingForce(mouseWorldPos, stateMachine.actorData.swingPower);
@@ -183,7 +203,11 @@ namespace RPG2D.Character.Player
 
         public override void Exit()
         {
+            base.Exit();
             stateMachine.rb.isKinematic = false;
+            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsClimbing, false);
+            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsSwinging, false);
+            isSwinging = false;
         }
     }
 }

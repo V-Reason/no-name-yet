@@ -1,8 +1,5 @@
 namespace RPG2D.Character.Player
 {
-    /// <summary>
-    /// 移动状态
-    /// </summary>
     public class MoveState : PlayerState
     {
         public MoveState(StateMachine stateMachine) : base(stateMachine) { }
@@ -10,8 +7,9 @@ namespace RPG2D.Character.Player
         public override void Enter()
         {
             base.Enter();
-            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsMoving, true);
+            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsSwimming, true);
         }
+
         public override void OnUpdate()
         {
             base.OnUpdate();
@@ -28,10 +26,11 @@ namespace RPG2D.Character.Player
 
             stateMachine.actor.Move();
         }
+
         public override void Exit()
         {
             base.Exit();
-            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsMoving, false);
+            stateMachine.animatorWrapper.SetBool(stateMachine.animatorWrapper.IsSwimming, false);
         }
     }
 }
