@@ -174,6 +174,11 @@ namespace RPG2D.Character.Player
             Vector2 pA = currentChain.GetNodePos(currentIdx);
             Vector2 pB = currentChain.GetNodePos(currentIdx + 1);
             stateMachine.transform.position = Vector2.Lerp(pA, pB, segmentProgress);
+
+            Vector2 chainDir = (pB - pA).normalized;
+            float moveInputY = stateMachine.controller.inputData.Move.y;
+            Vector2 facingDir = (moveInputY > 0.1f) ? -chainDir : chainDir;
+            stateMachine.actor.RotateVisual(facingDir);
         }
 
         public override void Exit()

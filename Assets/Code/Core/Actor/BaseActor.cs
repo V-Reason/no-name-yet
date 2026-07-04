@@ -40,6 +40,10 @@ namespace RPG2D.Core.Actor
         [HideInInspector]
         public bool canFlip = true;
 
+        [Header("视觉层设置")]
+        [SerializeField] protected Transform visualNode;
+        public float rotationSpeed = 10f;
+
         protected virtual void Start()
         {
             SetupPhysics();
@@ -117,7 +121,14 @@ namespace RPG2D.Core.Actor
 
             ApplyImpulse(impulse);
 
-            HandleFlip(moveInput.x);
+            if (visualNode != null)
+            {
+                RotateVisual(moveInput);
+            }
+            else
+            {
+                HandleFlip(moveInput.x);
+            }
         }
 
         // 处理转向
@@ -158,6 +169,22 @@ namespace RPG2D.Core.Actor
             {
                 rb.velocity = rb.velocity.normalized * maxSpeed;
             }
+        }
+
+        public virtual void RotateVisual(Vector2 targetDir)
+        {
+            if (visualNode == null || targetDir.sqrMagnitude < 0.001f) return;
+
+            float targetAngle = Mathf.Atan2(targetDir.y, targetDir.x) * Mathf.Rad2Deg - 90.0f;
+            Quaternion targetRotation = Quaternion.Euler(0, 0, targetAngle);
+            visualNode.rotation = Quaternion.Lerp(visualNode.rotation, targetRotation, Time.deltaTime * rotationSpeed);
+        }
+
+        public void ResetVisualRotation()
+        {
+            if (visualNode == null) return;
+            visualNode.localRotation = Quaternion.identity;
+            visualNode.localScale = new Vector3(Mathf.Abs(visualNode.localScale.x), Mathf.Abs(visualNode.localScale.y), 1);
         }
 
         // 自动初始化物理属性
