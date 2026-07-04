@@ -12,16 +12,17 @@ namespace RPG2D.Item
 
         public float detectRadius = 0.4f;
         public LayerMask interactableLayer;
+        public float reconnectDelay = 1f;
+        private float cooldownTimer;
 
+        private CircleCollider2D myCollider;
         private Vector2 lastPosition;
-
-
 
         private void Awake()
         {
-            var cld = GetComponent<CircleCollider2D>();
-            cld.isTrigger = true;
-            cld.radius = detectRadius;
+            myCollider = GetComponent<CircleCollider2D>();
+            myCollider.isTrigger = true;
+            myCollider.radius = detectRadius;
         }
 
         private void Start()
@@ -31,41 +32,67 @@ namespace RPG2D.Item
 
         private void Update()
         {
+            if (cooldownTimer > 0)
+            {
+                cooldownTimer -= Time.deltaTime;
+                lastPosition = transform.position;
+                return;
+            }
             if (hookedTarget != null) return;
 
             Vector2 currentPosition = transform.position;
             Vector2 direction = currentPosition - lastPosition;
             float distance = direction.magnitude;
 
-            Collider2D hitCollider = null;
-
             if (distance > 0.01f)
             {
-                RaycastHit2D rayHit = Physics2D.CircleCast(lastPosition, detectRadius, direction.normalized, distance, interactableLayer);
-                hitCollider = rayHit.collider;
+                RaycastHit2D[] rayHits = Physics2D.CircleCastAll(lastPosition, detectRadius, direction.normalized, distance, interactableLayer);
+                foreach (var rayHit in rayHits)
+                {
+                    if (TryConnect(rayHit.collider)) break;
+                }
             }
             else
             {
-                hitCollider = Physics2D.OverlapCircle(currentPosition, detectRadius, interactableLayer);
-            }
-
-            if (hitCollider != null)
-            {
-                if (hitCollider.transform.IsChildOf(ownerChain.transform))
-                {
-                    lastPosition = currentPosition;
-                    return;
-                }
-
-                IHookable target = hitCollider.GetComponent<IHookable>();
-                if (target != null && target.CanBeHooked())
-                {
-                    ConnectTo(target);
-                    Debug.Log($"<color=green>钩子连接成功: {hitCollider.name}</color>");
-                }
+                DetectPotentialTargets();
             }
 
             lastPosition = currentPosition;
+        }
+
+        private void DetectPotentialTargets()
+        {
+            if (cooldownTimer > 0) return;
+
+            Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, detectRadius, interactableLayer);
+
+            foreach (var hit in hits)
+            {
+                if (hit.transform.IsChildOf(ownerChain.transform)) continue;
+                if (ownerChain.parentAnchor != null && hit.transform == ownerChain.parentAnchor.transform) continue;
+
+                IHookable target = hit.GetComponent<IHookable>();
+                if (target != null && target.CanBeHooked())
+                {
+                    ConnectTo(target);
+                    break;
+                }
+            }
+        }
+
+        private bool TryConnect(Collider2D hitCollider)
+        {
+            if (hitCollider == myCollider) return false;
+            if (hitCollider.transform.IsChildOf(ownerChain.transform)) return false;
+            if (ownerChain.parentAnchor != null && hitCollider.transform == ownerChain.parentAnchor.transform) return false;
+
+            IHookable target = hitCollider.GetComponent<IHookable>();
+            if (target != null && target.CanBeHooked())
+            {
+                ConnectTo(target);
+                return true;
+            }
+            return false;
         }
 
         public void ConnectTo(IHookable target)
@@ -80,8 +107,15 @@ namespace RPG2D.Item
         {
             if (hookedTarget != null)
             {
+                Vector2 pushDir = ((Vector2)transform.position - hookedTarget.GetHookAttachPosition()).normalized;
+                if (pushDir == Vector2.zero) pushDir = Vector2.up;
+
                 hookedTarget.OnUnhooked();
                 hookedTarget = null;
+
+                ownerChain.ApplyRawImpulse(pushDir * 5f);
+
+                cooldownTimer = reconnectDelay;
                 if (ownerChain != null) ownerChain.isHooked = false;
             }
         }

@@ -23,6 +23,7 @@ namespace RPG2D.Item
 
         private void Awake()
         {
+            incomingHook = null;
             if (attachedChain == null) attachedChain = GetComponentInChildren<Chain>();
         }
     }
