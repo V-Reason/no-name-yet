@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace RPG2D.Item
 {
+    [RequireComponent(typeof(CircleCollider2D))]
     public class ChainHook : MonoBehaviour, IHookable
     {
         public Chain ownerChain;
@@ -13,6 +14,15 @@ namespace RPG2D.Item
         public LayerMask interactableLayer;
 
         private Vector2 lastPosition;
+
+
+
+        private void Awake()
+        {
+            var cld = GetComponent<CircleCollider2D>();
+            cld.isTrigger = true;
+            cld.radius = detectRadius;
+        }
 
         private void Start()
         {
@@ -62,6 +72,7 @@ namespace RPG2D.Item
         {
             hookedTarget = target;
             target.OnHooked(this);
+            if (ownerChain != null) ownerChain.isHooked = true;
             Debug.Log($"{ownerChain.name} 钩住了 {((MonoBehaviour)target).name}");
         }
 
@@ -71,6 +82,7 @@ namespace RPG2D.Item
             {
                 hookedTarget.OnUnhooked();
                 hookedTarget = null;
+                if (ownerChain != null) ownerChain.isHooked = false;
             }
         }
 
@@ -80,6 +92,7 @@ namespace RPG2D.Item
         public void OnHooked(ChainHook hook) => incomingHook = hook;
         public void OnUnhooked() => incomingHook = null;
         public Chain GetRelatedChain() => ownerChain;
+        public HookPointType GetHookPointType() => HookPointType.Tail;
 
         private void OnDrawGizmos()
         {

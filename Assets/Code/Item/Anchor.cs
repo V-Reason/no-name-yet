@@ -19,6 +19,7 @@ namespace RPG2D.Item
         public void OnHooked(ChainHook hook) => incomingHook = hook;
         public void OnUnhooked() => incomingHook = null;
         public Chain GetRelatedChain() => attachedChain;
+        public HookPointType GetHookPointType() => HookPointType.Head;
 
         private void Awake()
         {

@@ -10,6 +10,8 @@ namespace RPG2D.Character.Player
         private int currentIdx;
         private float segmentProgress;
 
+        private bool isInputInverted;
+
         public ClimbState(StateMachine stateMachine) : base(stateMachine) { }
 
         public override void Enter()
@@ -84,18 +86,21 @@ namespace RPG2D.Character.Player
 
         private void HandleClimbMovement()
         {
-            float inputY = stateMachine.controller.inputData.Move.y;
+            float rawInputY = stateMachine.controller.inputData.Move.y;
+            if (Mathf.Abs(rawInputY) < 0.05f) { isInputInverted = false; }
 
-            if (Mathf.Abs(inputY) < 0.01f)
+            float effectiveInputY = isInputInverted ? -rawInputY : rawInputY;
+
+            if (Mathf.Abs(effectiveInputY) < 0.01f)
             {
                 UpdatePosition();
                 return;
             }
 
-            float delta = -inputY * stateMachine.actorData.climbSpeed * Time.deltaTime / currentChain.SegLength;
+            float delta = -effectiveInputY * stateMachine.actorData.climbSpeed * Time.deltaTime / currentChain.SegLength;
             segmentProgress += delta;
 
-            // --- 向上跨越 ---
+            // --- 向上跨越检测 ---
             if (segmentProgress < 0f)
             {
                 if (currentIdx > 0)
@@ -105,22 +110,14 @@ namespace RPG2D.Character.Player
                 }
                 else
                 {
-                    // 已经到顶，检查上方是否有链条钩住了我的锚点
-                    var upHook = currentChain.parentAnchor?.incomingHook;
-                    if (upHook != null)
-                    {
-                        currentChain = upHook.ownerChain;
-                        currentIdx = currentChain.NodeCount - 2;
-                        segmentProgress = 0.95f;
-                        Debug.Log("<color=yellow>无缝向上切换</color>");
-                    }
+                    // 在 Index 0 (顶部) 只能检查顶部的 Anchor
+                    if (currentChain.parentAnchor != null && currentChain.parentAnchor.incomingHook != null)
+                        PerformChainSwitch(currentChain.parentAnchor.incomingHook.ownerChain, HookPointType.Tail);
                     else
-                    {
                         segmentProgress = 0f;
-                    }
                 }
             }
-            // --- 向下跨越 ---
+            // --- 向下跨越检测 ---
             else if (segmentProgress > 1f)
             {
                 if (currentIdx < currentChain.NodeCount - 2)
@@ -130,23 +127,40 @@ namespace RPG2D.Character.Player
                 }
                 else
                 {
-                    // 已经到底，检查钩子是否钩住了东西
-                    var target = currentChain.hookInstance?.hookedTarget;
-                    if (target != null && target.GetRelatedChain() != null)
-                    {
-                        currentChain = target.GetRelatedChain();
-                        currentIdx = 0;
-                        segmentProgress = 0.05f;
-                        Debug.Log("<color=yellow>无缝向下切换</color>");
-                    }
+                    // 情况 A：我主动钩住了别人
+                    var activeTarget = currentChain.hookInstance?.hookedTarget;
+                    // 情况 B：别人钩住了我的钩子
+                    var passiveIncoming = currentChain.hookInstance?.incomingHook;
+
+                    if (activeTarget != null)
+                        PerformChainSwitch(activeTarget.GetRelatedChain(), activeTarget.GetHookPointType());
+                    else if (passiveIncoming != null)
+                        PerformChainSwitch(passiveIncoming.ownerChain, HookPointType.Tail);
                     else
-                    {
                         segmentProgress = 1f;
-                    }
                 }
             }
 
             UpdatePosition();
+        }
+
+        private void PerformChainSwitch(Chain newChain, HookPointType entryPoint)
+        {
+            currentChain = newChain;
+
+            if (entryPoint == HookPointType.Head)
+            {
+                currentIdx = 0;
+                segmentProgress = 0.1f;
+                isInputInverted = false;
+            }
+            else
+            {
+                currentIdx = currentChain.NodeCount - 2;
+                segmentProgress = 0.9f;
+                isInputInverted = true;
+                Debug.Log("<color=yellow>进入尾部连接：输入临时反转模式启用</color>");
+            }
         }
 
         private void UpdatePosition()

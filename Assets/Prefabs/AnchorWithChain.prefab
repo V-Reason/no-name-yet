@@ -94,6 +94,7 @@ GameObject:
   - component: {fileID: 7128559647541099378}
   - component: {fileID: 101753640666857414}
   - component: {fileID: 1735093463547036464}
+  - component: {fileID: 266582302381800817}
   m_Layer: 6
   m_Name: ChainHook
   m_TagString: Untagged
@@ -109,8 +110,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3568118618458626558}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: -0, y: -0, z: -1, w: -0.00000004371139}
+  m_LocalPosition: {x: 0, y: 0.9810848, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -130,7 +131,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ownerChain: {fileID: 6870423168837514536}
   incomingHook: {fileID: 0}
-  detectRadius: 0.3
+  detectRadius: 0.4
   interactableLayer:
     serializedVersion: 2
     m_Bits: 64
@@ -186,6 +187,41 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!58 &266582302381800817
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3568118618458626558}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 0.4
 --- !u!1 &8261703553080935110
 GameObject:
   m_ObjectHideFlags: 0
@@ -359,6 +395,7 @@ MonoBehaviour:
   nodeRadius: 0.3
   parentAnchor: {fileID: 8475692929226619962}
   hookInstance: {fileID: 101753640666857414}
+  isHooked: 0
 --- !u!68 &9049740961060424749
 EdgeCollider2D:
   m_ObjectHideFlags: 0
@@ -394,8 +431,16 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -0.5, y: 5}
-  - {x: 0.5, y: 5}
+  - {x: 0, y: 10}
+  - {x: 0, y: 8.996198}
+  - {x: 0, y: 7.9926605}
+  - {x: 0, y: 6.9894857}
+  - {x: 0, y: 5.98675}
+  - {x: 0, y: 4.9845095}
+  - {x: 0, y: 3.9828038}
+  - {x: 0, y: 2.981658}
+  - {x: 0, y: 1.9810848}
+  - {x: 0, y: 0.9810848}
   m_AdjacentStartPoint: {x: 0, y: 0}
   m_AdjacentEndPoint: {x: 0, y: 0}
   m_UseAdjacentStartPoint: 0

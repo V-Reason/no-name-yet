@@ -59,6 +59,8 @@ namespace RPG2D.Item
         public Anchor parentAnchor;
         [Tooltip("底部的钩子")]
         public ChainHook hookInstance;
+        [Tooltip("钩子是否处于连接状态")]
+        public bool isHooked; // 由 ChainHook.ConnectTo/Disconnect 同步
 
         // 尾部是否被固定（钩子钩住了东西）
         public bool isFixedTail => hookInstance != null && hookInstance.hookedTarget != null;
@@ -88,6 +90,7 @@ namespace RPG2D.Item
             edgeCollider.isTrigger = true;
 
             hookInstance = GetComponentInChildren<ChainHook>();
+            if (hookInstance != null) hookInstance.ownerChain = this;
         }
 
         private void Update()
@@ -272,16 +275,19 @@ namespace RPG2D.Item
         /// </summary>
         public void TryDisconnectAll()
         {
-            // 向下断开：我的钩子钩住了别人
-            if (hookInstance != null)
-            {
-                hookInstance.Disconnect();
-            }
+            // 1. 向下断开：我的钩子钩住了别人
+            if (hookInstance != null) hookInstance.Disconnect();
 
-            // 向上断开：别人的钩子钩住了我的锚点
+            // 2. 向上断开：别人的钩子钩住了我的锚点
             if (parentAnchor != null && parentAnchor.incomingHook != null)
             {
                 parentAnchor.incomingHook.Disconnect();
+            }
+
+            // 3. 钩钩相连：我的钩子被另一个钩子钩住
+            if (hookInstance != null && hookInstance.incomingHook != null)
+            {
+                hookInstance.incomingHook.Disconnect();
             }
         }
 
