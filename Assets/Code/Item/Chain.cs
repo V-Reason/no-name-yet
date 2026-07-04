@@ -8,7 +8,7 @@ namespace RPG2D.Item
     [ExecuteAlways]
     [RequireComponent(typeof(LineRenderer))]
     [RequireComponent(typeof(EdgeCollider2D))]
-    public class Chain : MonoBehaviour, IGrabbable
+    public class Chain : MonoBehaviour, IGrabbable, IHookable
     {
         [System.Serializable]
         public struct Node
@@ -63,6 +63,11 @@ namespace RPG2D.Item
         // 尾部是否被固定（钩子钩住了东西）
         public bool isFixedTail => hookInstance != null && hookInstance.hookedTarget != null;
 
+        // 身体是否被钩住
+        private ChainHook incomingHook;
+        private int hookedNodeIndex = -1;
+        public int HookedNodeIndex => hookedNodeIndex;
+
         // --- IGrabbable 实现 ---
         public GrabType GrabType => GrabType.Linear;
         public bool CanGrab() => true;
@@ -72,6 +77,31 @@ namespace RPG2D.Item
             int index = GetClosestNodeIndex(playerPosition);
             return GetNodePos(index);
         }
+        // -----------------------
+
+        // --- IHookable 实现 ---
+        public Vector2 GetHookAttachPosition()
+        {
+            if (hookedNodeIndex != -1) return nodes[hookedNodeIndex].pos;
+            return transform.position;
+        }
+
+        public bool CanBeHooked() => incomingHook == null;
+
+        public void OnHooked(ChainHook hook)
+        {
+            incomingHook = hook;
+            hookedNodeIndex = GetClosestNodeIndex(hook.transform.position);
+        }
+
+        public void OnUnhooked()
+        {
+            incomingHook = null;
+            hookedNodeIndex = -1;
+        }
+
+        public Chain GetRelatedChain() => this;
+        public HookPointType GetHookPointType() => HookPointType.Body;
         // -----------------------
 
         void Awake()
@@ -136,11 +166,20 @@ namespace RPG2D.Item
                 nodes[nodes.Count - 1] = tail;
             }
 
+            // 身体中间节点被钩住，强制同步位置
+            if (incomingHook != null && hookedNodeIndex != -1)
+            {
+                var node = nodes[hookedNodeIndex];
+                node.pos = incomingHook.transform.position;
+                node.oldPos = node.pos;
+                nodes[hookedNodeIndex] = node;
+            }
+
             // 物理模拟
             for (int i = 0; i < nodes.Count; i++)
             {
                 Node node = nodes[i];
-                if (node.isFixed) continue;
+                if (node.isFixed || i == hookedNodeIndex) continue;
 
                 Vector2 velocity = (node.pos - node.oldPos) * drag;
                 node.oldPos = node.pos;
@@ -164,11 +203,14 @@ namespace RPG2D.Item
                     float diff = (segmentLength - dist) / dist;
                     Vector2 correction = (a.pos - b.pos) * diff * 0.5f;
 
-                    if (a.isFixed)
+                    bool aFixed = a.isFixed || i == hookedNodeIndex;
+                    bool bFixed = b.isFixed || i + 1 == hookedNodeIndex;
+
+                    if (aFixed)
                     {
                         b.pos -= correction * 2f;
                     }
-                    else if (b.isFixed)
+                    else if (bFixed)
                     {
                         a.pos += correction * 2f;
                     }
@@ -189,7 +231,7 @@ namespace RPG2D.Item
             for (int i = 0; i < nodes.Count; i++)
             {
                 Node node = nodes[i];
-                if (node.isFixed) continue;
+                if (node.isFixed || i == hookedNodeIndex) continue;
 
                 Collider2D hit = Physics2D.OverlapCircle(node.pos, nodeRadius, collisionLayer);
                 if (hit != null)
@@ -251,6 +293,15 @@ namespace RPG2D.Item
             }
         }
 
+        private void OnDrawGizmos()
+        {
+            if (hookedNodeIndex != -1 && Application.isPlaying)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireSphere(nodes[hookedNodeIndex].pos, nodeRadius * 2f);
+            }
+        }
+
         private void OnValidate()
         {
             totalLength = segmentCount * segmentLength;
@@ -283,6 +334,12 @@ namespace RPG2D.Item
             if (hookInstance != null && hookInstance.incomingHook != null)
             {
                 hookInstance.incomingHook.Disconnect();
+            }
+
+            // 4. 身体被钩：别人的钩子钩住了我的身体中间
+            if (incomingHook != null)
+            {
+                incomingHook.Disconnect();
             }
         }
 

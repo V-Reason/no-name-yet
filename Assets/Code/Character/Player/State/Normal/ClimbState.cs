@@ -153,6 +153,13 @@ namespace RPG2D.Character.Player
                 segmentProgress = 0.1f;
                 isInputInverted = false;
             }
+            else if (entryPoint == HookPointType.Body)
+            {
+                currentIdx = newChain.HookedNodeIndex;
+                currentIdx = Mathf.Clamp(currentIdx, 0, currentChain.NodeCount - 2);
+                segmentProgress = 0.5f;
+                isInputInverted = false;
+            }
             else
             {
                 currentIdx = currentChain.NodeCount - 2;

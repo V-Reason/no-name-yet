@@ -72,6 +72,7 @@ namespace RPG2D.Item
                 if (ownerChain.parentAnchor != null && hit.transform == ownerChain.parentAnchor.transform) continue;
 
                 IHookable target = hit.GetComponent<IHookable>();
+                if (target == null) target = hit.GetComponentInParent<IHookable>();
                 if (target != null && target.CanBeHooked())
                 {
                     ConnectTo(target);
@@ -87,6 +88,7 @@ namespace RPG2D.Item
             if (ownerChain.parentAnchor != null && hitCollider.transform == ownerChain.parentAnchor.transform) return false;
 
             IHookable target = hitCollider.GetComponent<IHookable>();
+            if (target == null) target = hitCollider.GetComponentInParent<IHookable>();
             if (target != null && target.CanBeHooked())
             {
                 ConnectTo(target);

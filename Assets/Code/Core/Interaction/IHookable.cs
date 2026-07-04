@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace RPG2D.Core.Interaction
 {
-    public enum HookPointType { Head, Tail }
+    public enum HookPointType { Head, Tail, Body }
 
     public interface IHookable
     {
