@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4732155269236343871}
   - component: {fileID: 3443119893881186435}
   - component: {fileID: 1088435470318614827}
+  - component: {fileID: 4425685420965942086}
   m_Layer: 0
   m_Name: TurbForceZone_Polygon
   m_TagString: Untagged
@@ -118,3 +119,17 @@ PolygonCollider2D:
       - {x: 0.58778536, y: -0.80901694}
       - {x: 0.9510565, y: 0.30901712}
   m_UseDelaunayMesh: 0
+--- !u!114 &4425685420965942086
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4624937965485108992}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 365efee6815b5b14baa0c91b1d7a05e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _color: {r: 0, g: 1, b: 0.5, a: 0.8}
+  _showOnlyWhenSelected: 0
