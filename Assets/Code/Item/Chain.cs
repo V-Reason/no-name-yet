@@ -1,14 +1,14 @@
+using System;
 using System.Collections.Generic;
 using RPG2D.Core.Interaction;
 using UnityEngine;
 
 namespace RPG2D.Item
 {
-
     [ExecuteAlways]
     [RequireComponent(typeof(LineRenderer))]
     [RequireComponent(typeof(EdgeCollider2D))]
-    public class Chain : MonoBehaviour, IGrabbable, IHookable
+    public class Chain : MonoBehaviour, IGrabbable, IHookable, IForceReceiver
     {
         [System.Serializable]
         public struct Node
@@ -62,6 +62,7 @@ namespace RPG2D.Item
         private LineRenderer lineRenderer;
         private EdgeCollider2D edgeCollider;
         private Material chainMaterial;
+        private Vector2 accumulatedForce;
 
         [Header("链条连接")]
         [Tooltip("钩子是否处于连接状态")]
@@ -200,9 +201,11 @@ namespace RPG2D.Item
 
                 Vector2 velocity = (node.pos - node.oldPos) * drag;
                 node.oldPos = node.pos;
-                node.pos += velocity + gravity * Time.fixedDeltaTime;
+                node.pos += velocity + (gravity + accumulatedForce) * Time.fixedDeltaTime;
                 nodes[i] = node;
             }
+
+            accumulatedForce = Vector2.zero;
         }
 
         private void ApplyConstraints()
@@ -420,6 +423,11 @@ namespace RPG2D.Item
                 node.pos += impulse * swingDamping;
                 nodes[i] = node;
             }
+        }
+
+        public void ApplyForce(Vector2 force)
+        {
+            accumulatedForce += force;
         }
 
         public void ApplyRawImpulse(Vector2 impulse)

@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using RPG2D.Core.Checker;
+using RPG2D.Core.Interaction;
 
 namespace RPG2D.Pyhsics.TurbForce
 {
@@ -10,7 +11,7 @@ namespace RPG2D.Pyhsics.TurbForce
     [RequireComponent(typeof(AreaTargetChecker2D))]
     public class TurbForceZone2D : MonoBehaviour
     {
-        private readonly List<Rigidbody2D> appliedRigidbodies = new();
+        private readonly HashSet<IForceReceiver> appliedReceivers = new();
 
         [SerializeField]
         private Vector2 forceDirection = Vector2.up;
@@ -79,7 +80,7 @@ namespace RPG2D.Pyhsics.TurbForce
         }
 
         /// <summary>
-        /// 检测力场范围内的目标, 并对每个刚体施加一次湍流力.
+        /// 检测力场范围内的目标, 并对每个受力接口对象施加一次湍流力.
         /// </summary>
         private void ApplyForceToTargets()
         {
@@ -93,26 +94,25 @@ namespace RPG2D.Pyhsics.TurbForce
                 return;
             }
 
-            appliedRigidbodies.Clear();
+            appliedReceivers.Clear();
             targetChecker.Check();
 
             for (int i = 0; i < targetChecker.HitCount; i++)
             {
                 Collider2D targetCollider = targetChecker[i];
-                Rigidbody2D targetRb = targetCollider != null ? targetCollider.attachedRigidbody : null;
-                if (targetRb == null || appliedRigidbodies.Contains(targetRb))
+                if (!ForceReceiverResolver2D.TryGetUniqueReceiver(targetCollider, appliedReceivers, out IForceReceiver receiver))
                 {
                     continue;
                 }
 
-                Vector2 force = GetForceAt(targetRb.position);
+                Vector2 targetPosition = ForceReceiverResolver2D.GetForceSamplePosition(targetCollider);
+                Vector2 force = GetForceAt(targetPosition);
                 if (force.sqrMagnitude <= Mathf.Epsilon)
                 {
                     continue;
                 }
 
-                targetRb.AddForce(force, ForceMode2D.Force);
-                appliedRigidbodies.Add(targetRb);
+                receiver.ApplyForce(force);
             }
         }
 
