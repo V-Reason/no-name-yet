@@ -8,7 +8,7 @@ namespace RPG2D.Item
     [ExecuteAlways]
     [RequireComponent(typeof(LineRenderer))]
     [RequireComponent(typeof(EdgeCollider2D))]
-    public class Chain : MonoBehaviour, IGrabbable
+    public class Chain : MonoBehaviour, IGrabbable, IHookable
     {
         private EdgeCollider2D edgeCollider;
 
@@ -63,15 +63,12 @@ namespace RPG2D.Item
         private Transform hookTransform;
         // 获取钩子位置（最后一个节点）
         public Vector2 GetHookPosition() => nodes[nodes.Count - 1].pos;
-
+        public IHookable HookedTarget => hookedTarget; // 暴露钩住的目标
 
         // --- IGrabbable 实现 ---
         public GrabType GrabType => GrabType.Linear;
-
         public bool CanGrab() => true;
-
         public Transform GetTransform() => transform;
-
         public Vector2 GetGrabPosition(Vector2 playerPosition)
         {
             int index = GetClosestNodeIndex(playerPosition);
@@ -289,19 +286,40 @@ namespace RPG2D.Item
 
         public int NodeCount => nodes.Count;
         public float SegLength => segmentLength;
+        public ChainHook incomingHook; // 记录当前钩在自己身上的钩子
 
         public void ConnectTo(IHookable target)
         {
             isHooked = true;
             hookedTarget = target;
-            target.OnHooked(null); // 此处可传入hook引用
+            target.OnHooked(hookInstance); // 传入自己的钩子
+        }
+        // 实现 IHookable 接口需要的方法
+        public Vector2 GetHookAttachPosition() => GetHookPosition(); // 勾在链条末端（钩子位置）
+        public bool CanBeHooked() => true;
+
+        // 你代码中已经有了 OnHooked 和 OnUnhooked，但要确保它们是 public
+        public void OnHooked(ChainHook hook)
+        {
+            incomingHook = hook;
+            Debug.Log($"{name} 被 {hook.ownerChain.name} 勾住了");
         }
 
+        public void OnUnhooked()
+        {
+            incomingHook = null;
+        }
+
+        // 修改 Disconnect，确保解开时调用目标的 OnUnhooked
         public void Disconnect()
         {
-            if (isHooked && hookedTarget != null) hookedTarget.OnUnhooked();
-            isHooked = false;
-            hookedTarget = null;
+            if (isHooked && hookedTarget != null)
+            {
+                hookedTarget.OnUnhooked();
+                isHooked = false;
+                hookedTarget = null;
+                Debug.Log($"{name} 已主动断开连接");
+            }
         }
 
         // 给玩家调用：甩动尾部
@@ -318,5 +336,4 @@ namespace RPG2D.Item
             }
         }
     }
-
 }

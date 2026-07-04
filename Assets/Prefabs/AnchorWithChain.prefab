@@ -9,6 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3728125009828153691}
+  - component: {fileID: 8023256823255054921}
+  - component: {fileID: 8475692929226619962}
   m_Layer: 6
   m_Name: AnchorWithChain
   m_TagString: Untagged
@@ -32,6 +34,54 @@ Transform:
   - {fileID: 2612002391228589016}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!58 &8023256823255054921
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1277150345330302575}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 0.7
+--- !u!114 &8475692929226619962
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1277150345330302575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40a03b5b2662b2a44b1e059fda7b5023, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attachedChain: {fileID: 6870423168837514536}
 --- !u!1 &3568118618458626558
 GameObject:
   m_ObjectHideFlags: 0
@@ -42,7 +92,6 @@ GameObject:
   m_Component:
   - component: {fileID: 7128559647541099378}
   - component: {fileID: 101753640666857414}
-  - component: {fileID: 3092193048095083512}
   - component: {fileID: 1735093463547036464}
   m_Layer: 6
   m_Name: ChainHook
@@ -79,44 +128,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ownerChain: {fileID: 6870423168837514536}
-  hookableMask:
+  detectRadius: 0.3
+  interactableLayer:
     serializedVersion: 2
-    m_Bits: 128
---- !u!58 &3092193048095083512
-CircleCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3568118618458626558}
-  m_Enabled: 1
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 1
-  m_UsedByEffector: 0
-  m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
-  serializedVersion: 2
-  m_Radius: 0.5
+    m_Bits: 64
 --- !u!212 &1735093463547036464
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -342,6 +357,7 @@ MonoBehaviour:
   nodeRadius: 0.3
   hookInstance: {fileID: 101753640666857414}
   isHooked: 0
+  incomingHook: {fileID: 0}
 --- !u!68 &9049740961060424749
 EdgeCollider2D:
   m_ObjectHideFlags: 0

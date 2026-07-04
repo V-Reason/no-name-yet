@@ -1,4 +1,3 @@
-using RPG2D.Core.Data;
 using RPG2D.Core.Interaction;
 using RPG2D.Item;
 using UnityEngine;
@@ -9,121 +8,169 @@ namespace RPG2D.Character.Player
     {
         private Chain chain;
         private int currentIdx;
-        private float segmentProgress; // 0-1 进度
+        private float segmentProgress;
 
         public ClimbState(StateMachine stateMachine) : base(stateMachine) { }
 
         public override void Enter()
         {
             var grabbable = stateMachine.detector.checkData.TargetGrabbable;
+            InitializeClimb(grabbable);
+        }
 
-            Debug.Log($"{grabbable?.GetTransform()}");
+        // 提取初始化逻辑，方便切换锁链时复用
+        private void InitializeClimb(IGrabbable grabbable)
+        {
+            if (grabbable == null) return;
 
-            if (grabbable.GrabType == GrabType.Static)
+            IGrabbable actualTarget = grabbable;
+
+            // --- 核心修复：重定向逻辑 ---
+            if (grabbable is Anchor anchor && anchor.attachedChain != null)
             {
-                // 锁定到锚点
-                stateMachine.transform.position = grabbable.GetGrabPosition(stateMachine.transform.position);
+                // 如果抓的是锚点，但锚点连着锁链，则视为抓住了锁链
+                actualTarget = anchor.attachedChain;
             }
-            else if (grabbable.GrabType == GrabType.Linear)
+            // -------------------------
+
+            if (actualTarget.GrabType == GrabType.Static)
             {
-                chain = grabbable as Chain;
-                // 锁定到最近的节点
-                currentIdx = chain.GetClosestNodeIndex(stateMachine.transform.position);
-                currentIdx = UnityEngine.Mathf.Min(currentIdx, chain.segmentCount - 2);
-                segmentProgress = 0.5f;
+                stateMachine.transform.position = actualTarget.GetGrabPosition(stateMachine.transform.position);
+                chain = null;
+            }
+            else if (actualTarget.GrabType == GrabType.Linear)
+            {
+                chain = actualTarget as Chain;
 
+                // 如果是从锚点重定向过来的，直接设为第0个节点
+                if (grabbable is Anchor)
+                {
+                    currentIdx = 0;
+                    segmentProgress = 0f;
+                }
+                else
+                {
+                    currentIdx = chain.GetClosestNodeIndex(stateMachine.transform.position);
+                    currentIdx = Mathf.Clamp(currentIdx, 0, chain.segmentCount - 2);
+                    segmentProgress = 0.5f;
+                }
             }
 
-            // 减速
-            stateMachine.rb.velocity = UnityEngine.Vector2.zero;
-            stateMachine.rb.isKinematic = true; // 物理静默，防止推开链子
+            stateMachine.rb.velocity = Vector2.zero;
+            stateMachine.rb.isKinematic = true;
         }
 
         public override void OnUpdate()
         {
-            // 退出条件：按交互键或跳跃键（这里根据你的输入逻辑定）
-            if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.Space))
             {
                 stateMachine.SwitchState<IdleState>();
                 return;
             }
 
-            HandleSwingLogic();
-            HandleClimbMovement();
+            if (chain != null)
+            {
+                HandleSwingLogic();
+                HandleClimbMovement();
+            }
         }
 
-        // 在 ClimbState.cs 的 OnUpdate 中添加：
         private void HandleSwingLogic()
         {
-            // 只有在链条顶端（锚点）才能甩
-            if (currentIdx > 1) return;
+            if (chain == null) return;
 
-            if (Input.GetMouseButton(0)) // 按住左键甩动
+            // --- 统一的 Q 键逻辑 ---
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                // 逻辑：如果在顶端且有东西勾着我，断开上面的；否则断开下面的
+                if (currentIdx <= 1 && segmentProgress < 0.5f && chain.incomingHook != null)
+                {
+                    Debug.Log("断开上方连接");
+                    chain.incomingHook.ownerChain.Disconnect();
+                }
+                else if (chain.isHooked)
+                {
+                    Debug.Log("断开下方连接");
+                    chain.Disconnect();
+                }
+                return; // 处理完 Q 立即返回
+            }
+
+            // 甩动逻辑
+            if (currentIdx <= 1 && Input.GetMouseButton(0))
             {
                 Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 Vector2 dir = (mousePos - (Vector2)stateMachine.transform.position).normalized;
-
-                // 这里的力大小可以根据需求调整
-                float swingPower = stateMachine.actorData.swingPower;
-                chain.ApplySwingForce(dir * swingPower * Mathf.Abs(Mathf.Sin(Time.time)));
-            }
-
-            // 解开钩子逻辑
-            if (Input.GetKeyDown(KeyCode.Q))
-            {
-                // 检测玩家是否在钩子附近
-                float distToHook = Vector2.Distance(stateMachine.transform.position, chain.GetHookPosition());
-                if (distToHook < 1.5f) // 距离阈值
-                {
-                    chain.Disconnect();
-                }
+                chain.ApplySwingForce(dir * stateMachine.actorData.swingPower * Mathf.Abs(Mathf.Sin(Time.time * 2)));
             }
         }
 
         private void HandleClimbMovement()
         {
-            // 获取垂直输入 (W/Up 为正, S/Down 为负)
             float inputY = stateMachine.controller.inputData.Move.y;
-            if (UnityEngine.Mathf.Abs(inputY) < 0.01f) return;
 
-            // --- 核心修复：在这里加一个负号 ---
-            // 因为索引 0 是顶端，向上爬意味着我们要减小索引/进度
-            float delta = -inputY * stateMachine.actorData.climbSpeed * UnityEngine.Time.deltaTime / chain.segmentLength;
+            if (Mathf.Abs(inputY) < 0.01f)
+            {
+                UpdatePlayerPositionOnChain();
+                return;
+            }
 
+            float delta = -inputY * stateMachine.actorData.climbSpeed * Time.deltaTime / chain.segmentLength;
             segmentProgress += delta;
 
-            // 跨段逻辑处理
+            // --- 向下跨段 (已经实现) ---
             if (segmentProgress > 1f)
             {
-                // 进度 > 1 说明在向索引大的方向（下方）移动
                 if (currentIdx < chain.segmentCount - 2)
                 {
                     currentIdx++;
                     segmentProgress -= 1f;
                 }
-                else
+                else if (chain.isHooked && chain.HookedTarget != null)
                 {
-                    segmentProgress = 1f; // 到达链条最末端
+                    var nextGrabbable = (chain.HookedTarget as Component)?.GetComponentInParent<IGrabbable>();
+                    if (nextGrabbable != null && nextGrabbable != (IGrabbable)chain)
+                    {
+                        InitializeClimb(nextGrabbable);
+                        currentIdx = 0;
+                        segmentProgress = 0.1f;
+                        return;
+                    }
                 }
+                else { segmentProgress = 1f; }
             }
+            // --- 需求修复：向上跨段 (回到上一条锁链) ---
             else if (segmentProgress < 0f)
             {
-                // 进度 < 0 说明在向索引小的方向（上方）移动
                 if (currentIdx > 0)
                 {
                     currentIdx--;
                     segmentProgress += 1f;
                 }
+                else if (chain.incomingHook != null) // 如果有上一级锁链钩着我
+                {
+                    Chain prevChain = chain.incomingHook.ownerChain;
+                    InitializeClimb(prevChain);
+                    // 修正：回到上一条链子的倒数第二个节点，进度设为末尾
+                    currentIdx = prevChain.segmentCount - 2;
+                    segmentProgress = 0.95f;
+                    Debug.Log("<color=yellow>回爬成功</color>");
+                    return;
+                }
                 else
                 {
-                    segmentProgress = 0f; // 到达锚点
+                    segmentProgress = 0f;
                 }
             }
 
-            // 插值设置位置
-            UnityEngine.Vector2 posA = chain.GetNodePos(currentIdx);
-            UnityEngine.Vector2 posB = chain.GetNodePos(currentIdx + 1);
-            stateMachine.transform.position = UnityEngine.Vector2.Lerp(posA, posB, segmentProgress);
+            UpdatePlayerPositionOnChain();
+        }
+
+        private void UpdatePlayerPositionOnChain()
+        {
+            Vector2 posA = chain.GetNodePos(currentIdx);
+            Vector2 posB = chain.GetNodePos(currentIdx + 1);
+            stateMachine.transform.position = Vector2.Lerp(posA, posB, segmentProgress);
         }
 
         public override void Exit()

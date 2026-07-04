@@ -6,6 +6,8 @@ namespace RPG2D.Item
     [RequireComponent(typeof(CircleCollider2D))]
     public class Anchor : MonoBehaviour, IGrabbable, IHookable
     {
+        public Chain attachedChain;
+
         public GrabType GrabType => GrabType.Static;
         public bool CanGrab() => true;
         public Transform GetTransform() => transform;
@@ -20,6 +22,7 @@ namespace RPG2D.Item
 
         private void Awake()
         {
+            attachedChain = GetComponentInChildren<Chain>();
             cld.isTrigger = true;
         }
 
@@ -32,7 +35,7 @@ namespace RPG2D.Item
         private void OnDrawGizmos()
         {
             Gizmos.color = Color.cyan;
-            Gizmos.DrawWireSphere(transform.position, 0.3f);
+            Gizmos.DrawWireSphere(transform.position, cld.radius);
             Gizmos.DrawIcon(transform.position, "Anchor_Icon", true);
         }
     }

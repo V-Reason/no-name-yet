@@ -3,31 +3,81 @@ using UnityEngine;
 
 namespace RPG2D.Item
 {
-    [RequireComponent(typeof(CircleCollider2D))]
     public class ChainHook : MonoBehaviour, IHookable
     {
-        public Chain ownerChain; // 拖入父级的 Chain 脚本
-        public LayerMask hookableMask; // 设置为包含 Anchor 和其他 Hook 的层级
+        public Chain ownerChain;
+        public float detectRadius = 0.5f; // 稍微调大一点点
+        public LayerMask interactableLayer;
 
-        private void OnTriggerEnter2D(Collider2D other)
+        private Vector2 lastPosition; // 记录上一帧的位置
+
+        private void Start()
         {
-            if (ownerChain.isHooked) return; // 已经钩住了就不用再检测
-
-            // 尝试获取 IHookable 接口
-            IHookable target = other.GetComponent<IHookable>();
-
-            // 确保不是钩到自己
-            if (target != null && (MonoBehaviour)target != this && target.CanBeHooked())
-            {
-                ownerChain.ConnectTo(target);
-                Debug.Log($"钩住了: {other.name}");
-            }
+            lastPosition = transform.position;
         }
 
-        // 实现 IHookable 接口，让链条可以互钩
+        private void Update()
+        {
+            if (ownerChain.isHooked) return;
+
+            Vector2 currentPosition = transform.position;
+            Vector2 direction = currentPosition - lastPosition;
+            float distance = direction.magnitude;
+
+            Collider2D hitCollider = null; // 统一使用 Collider2D 接收结果
+
+            if (distance > 0.01f)
+            {
+                // 扫掠检测：返回路径上碰到的第一个 RaycastHit2D
+                RaycastHit2D rayHit = Physics2D.CircleCast(lastPosition, detectRadius, direction.normalized, distance, interactableLayer);
+                hitCollider = rayHit.collider;
+            }
+            else
+            {
+                // 静止检测：直接返回圆圈内的 Collider2D
+                hitCollider = Physics2D.OverlapCircle(currentPosition, detectRadius, interactableLayer);
+            }
+
+            if (hitCollider != null)
+            {
+                // 排除自己所在的链条
+                if (hitCollider.transform.IsChildOf(ownerChain.transform))
+                {
+                    lastPosition = currentPosition;
+                    return;
+                }
+
+                IHookable target = hitCollider.GetComponent<IHookable>();
+                if (target != null && target.CanBeHooked())
+                {
+                    ownerChain.ConnectTo(target);
+                    Debug.Log($"<color=green>钩子连接成功: {hitCollider.name}</color>");
+                }
+
+                if (target != null && target.CanBeHooked())
+                {
+                    if (hitCollider.transform.IsChildOf(ownerChain.transform)) return;
+                    ownerChain.ConnectTo(target);
+                    // 关键：告诉目标，是我钩了你
+                    target.OnHooked(this);
+                }
+            }
+
+            lastPosition = currentPosition;
+
+        }
+
+        // 实现 IHookable 接口
         public Vector2 GetHookAttachPosition() => transform.position;
         public void OnHooked(ChainHook incomingHook) { }
         public void OnUnhooked() { }
-        public bool CanBeHooked() => ownerChain.isHooked; // 只有当我自己处于固定状态，别人才能钩我
+        public bool CanBeHooked() => ownerChain.isHooked;
+
+        private void OnDrawGizmos()
+        {
+            Gizmos.color = (ownerChain != null && ownerChain.isHooked) ? Color.green : Color.yellow;
+            // 画出检测范围
+            Gizmos.DrawWireSphere(transform.position, detectRadius);
+        }
     }
 }
