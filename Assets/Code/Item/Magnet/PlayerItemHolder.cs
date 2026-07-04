@@ -19,6 +19,7 @@ namespace RPG2D.Item
         public event Action<bool> OnMagnetChanged;
 
         public bool HasMagnet => hasMagnet;
+        public MagnetHeldItem ActiveHeldItem { get; private set; }
 
         private void Awake()
         {
@@ -61,6 +62,7 @@ namespace RPG2D.Item
             GameObject heldItem = Instantiate(magnetHeldPrefab, itemHoldPoint);
             heldItem.transform.localPosition = Vector3.zero;
             heldItem.transform.localRotation = Quaternion.identity;
+            ActiveHeldItem = heldItem.GetComponent<MagnetHeldItem>();
 
             SetHasMagnet(false);
             return true;
@@ -77,6 +79,11 @@ namespace RPG2D.Item
             }
 
             hasMagnet = value;
+            if (value)
+            {
+                ActiveHeldItem = null;
+            }
+
             OnMagnetChanged?.Invoke(hasMagnet);
         }
     }

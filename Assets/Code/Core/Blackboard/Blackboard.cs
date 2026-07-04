@@ -6,9 +6,15 @@ public class Blackboard : Singleton<Blackboard>
     public float currentDepth;
     public float targetDepth = 500f;
 
+    [Header("磁铁状态")]
+    public bool hasMagnet;
+    public bool isMagnetActive;
+
     public void ResetData()
     {
         currentDepth = 0;
+        hasMagnet = false;
+        isMagnetActive = false;
     }
 
     // 演示
