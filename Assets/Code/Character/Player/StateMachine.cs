@@ -1,4 +1,5 @@
 using UnityEngine;
+using RPG2D.Character.Monster.Piranha;
 using RPG2D.Core.StateMachine;
 
 namespace RPG2D.Character.Player
@@ -15,6 +16,8 @@ namespace RPG2D.Character.Player
         public new Detector detector => base.detector as Detector;
         public new Actor actor => base.actor as Actor;
         public new AnimatorWrapper animatorWrapper => base.animatorWrapper as AnimatorWrapper;
+        public PiranhaAI CapturingPiranha { get; private set; }
+        public Transform PiranhaCapturePoint { get; private set; }
 
         /// <summary>
         /// 注册状态池，
@@ -28,6 +31,7 @@ namespace RPG2D.Character.Player
             RegisterState(new IdleState(this));
             RegisterState(new MoveState(this));
             RegisterState(new ClimbState(this));
+            RegisterState(new PiranhaCapturedState(this));
         }
 
         // 指定初始状态
@@ -56,6 +60,31 @@ namespace RPG2D.Character.Player
         // 更新状态值
         private void UpdateStateValue()
         {
+        }
+
+        /// <summary>
+        /// 记录食人鱼捕获上下文，并请求切换到被捕获状态。
+        /// </summary>
+        public virtual bool CaptureByPiranha(PiranhaAI piranha, Transform capturePoint)
+        {
+            if (piranha == null || capturePoint == null || CapturingPiranha != null)
+            {
+                return false;
+            }
+
+            CapturingPiranha = piranha;
+            PiranhaCapturePoint = capturePoint;
+            SwitchState<PiranhaCapturedState>();
+            return true;
+        }
+
+        /// <summary>
+        /// 清理食人鱼捕获上下文，供释放逻辑和状态退出时统一调用。
+        /// </summary>
+        public void ClearPiranhaCapture()
+        {
+            CapturingPiranha = null;
+            PiranhaCapturePoint = null;
         }
     }
 }
