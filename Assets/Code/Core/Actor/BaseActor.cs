@@ -84,6 +84,23 @@ namespace RPG2D.Core.Actor
             // 目标速度
             Vector2 targetVelocity = moveInput * actorData.moveSpeed;
 
+            // Y轴：按S减速上浮但不能下潜
+            if (moveInput.y > 0)
+            {
+                // W：全力上升
+                targetVelocity.y = moveInput.y * actorData.moveSpeed;
+            }
+            else if (moveInput.y < 0)
+            {
+                // S：制动减速，目标速度为0，不追求负速度
+                targetVelocity.y = 0;
+            }
+            else
+            {
+                // 无Y输入：不干预，让浮力自由推动
+                targetVelocity.y = rb.velocity.y;
+            }
+
             // 计算速度差
             Vector2 speedDif = targetVelocity - rb.velocity;
 

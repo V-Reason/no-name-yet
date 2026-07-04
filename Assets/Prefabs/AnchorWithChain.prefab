@@ -188,7 +188,6 @@ MonoBehaviour:
   interactableLayer:
     serializedVersion: 2
     m_Bits: 64
-  disconnectPushForce: 15
   reconnectDelay: 0.8
 --- !u!212 &1735093463547036464
 SpriteRenderer:
