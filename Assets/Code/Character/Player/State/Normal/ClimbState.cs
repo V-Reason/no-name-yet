@@ -56,6 +56,7 @@ namespace RPG2D.Character.Player
             if (Input.GetKeyDown(KeyCode.Q) && currentChain != null)
             {
                 currentChain.TryDisconnectAll();
+                isInputInverted = false;
                 return;
             }
 
@@ -75,12 +76,10 @@ namespace RPG2D.Character.Player
 
         private void HandleSwingLogic()
         {
-            // 甩动逻辑：在链条顶端时可以通过鼠标甩动
-            if (currentIdx <= 1 && segmentProgress < 0.5f && Input.GetMouseButton(0))
+            if (currentIdx <= 1 && Input.GetMouseButton(0))
             {
-                Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                Vector2 dir = (mousePos - (Vector2)stateMachine.transform.position).normalized;
-                currentChain.ApplySwingForce(dir * stateMachine.actorData.swingPower * Mathf.Abs(Mathf.Sin(Time.time * 2)));
+                Vector2 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                currentChain.ApplySwingForce(mouseWorldPos, stateMachine.actorData.swingPower);
             }
         }
 

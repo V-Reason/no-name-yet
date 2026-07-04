@@ -10,39 +10,40 @@ namespace RPG2D.Item
     [RequireComponent(typeof(EdgeCollider2D))]
     public class Chain : MonoBehaviour, IGrabbable
     {
-        private EdgeCollider2D edgeCollider;
-
         [System.Serializable]
         public struct Node
         {
             public Vector2 pos;
             public Vector2 oldPos;
             public bool isFixed;
-
-            public Node(Vector2 initialPos, bool fixedPoint = false)
-            {
-                pos = oldPos = initialPos;
-                isFixed = fixedPoint;
-            }
         }
 
         [Header("链条结构设置")]
-        [Tooltip("锚点")]
-        public Transform anchor;
-        [Tooltip("链条尾巴")]
-        public Transform tailStartPoint;
-        [Tooltip("链条段数")]
+        [Tooltip("顶部的锚点引用")]
+        public Anchor parentAnchor;
+        [Tooltip("底部的钩子引用")]
+        public ChainHook hookInstance;
+
+        [Range(2, 50)]
         public int segmentCount = 10;
-        [Tooltip("每段长度")]
-        public float segmentLength = 1f;
+        [Range(0.1f, 2f)]
+        public float segmentLength = 0.5f;
+
+        [Header("只读信息")]
+        [SerializeField, Unity.Collections.ReadOnly]
+        private float totalLength;
 
         [Header("物理参数设置")]
         [Tooltip("重力参数")]
         public Vector2 gravity = new Vector2(0, -1f);
         [Tooltip("运动阻力（值越小阻力越大）")]
         [Range(0f, 1f)] public float drag = 0.95f;
-        [Tooltip("物理计算密度")]
-        public int constraintIterations = 15;
+        [Tooltip("迭代次数越多，链条越不容易拉长。建议 40-60")]
+        public int constraintIterations = 50;
+
+        [Header("物理进阶设置")]
+        public float swingDamping = 0.7f;
+        public float maxSwingImpulse = 2.0f;
 
         [Header("碰撞设置")]
         public bool enableCollision = true;
@@ -53,12 +54,9 @@ namespace RPG2D.Item
 
         private List<Node> nodes = new List<Node>();
         private LineRenderer lineRenderer;
+        private EdgeCollider2D edgeCollider;
 
         [Header("链条连接")]
-        [Tooltip("顶部的锚点")]
-        public Anchor parentAnchor;
-        [Tooltip("底部的钩子")]
-        public ChainHook hookInstance;
         [Tooltip("钩子是否处于连接状态")]
         public bool isHooked; // 由 ChainHook.ConnectTo/Disconnect 同步
 
@@ -79,18 +77,13 @@ namespace RPG2D.Item
         void Awake()
         {
             lineRenderer = GetComponent<LineRenderer>();
+            edgeCollider = GetComponent<EdgeCollider2D>();
             lineRenderer.useWorldSpace = true;
 
             if (Application.isPlaying)
             {
                 InitChain();
             }
-
-            edgeCollider = GetComponent<EdgeCollider2D>();
-            edgeCollider.isTrigger = true;
-
-            hookInstance = GetComponentInChildren<ChainHook>();
-            if (hookInstance != null) hookInstance.ownerChain = this;
         }
 
         private void Update()
@@ -112,18 +105,16 @@ namespace RPG2D.Item
             DrawChain();
         }
 
-        [ContextMenu("重置链条")]
+        [ContextMenu("重置物理链条")]
         public void InitChain()
         {
             nodes.Clear();
-            Vector2 startPos = anchor != null ? (Vector2)anchor.position : (Vector2)transform.position;
-            Vector2 endPos = tailStartPoint != null ? (Vector2)tailStartPoint.position : startPos + Vector2.down * (segmentCount * segmentLength);
+            Vector2 startPos = transform.position;
 
             for (int i = 0; i < segmentCount; i++)
             {
-                float t = (float)i / (segmentCount - 1);
-                Vector2 initialPos = Vector2.Lerp(startPos, endPos, t);
-                nodes.Add(new Node(initialPos, i == 0));
+                Vector2 initialPos = startPos + Vector2.down * (i * segmentLength);
+                nodes.Add(new Node { pos = initialPos, oldPos = initialPos, isFixed = (i == 0) });
             }
 
             lineRenderer.positionCount = segmentCount;
@@ -131,13 +122,10 @@ namespace RPG2D.Item
 
         private void UpdateNodes()
         {
-            // 头节点固定在锚点
-            if (anchor != null)
-            {
-                var head = nodes[0];
-                head.pos = anchor.position;
-                nodes[0] = head;
-            }
+            // 头节点固定在变换位置
+            var head = nodes[0];
+            head.pos = transform.position;
+            nodes[0] = head;
 
             // 被钩住就强制固定尾巴节点
             if (isFixedTail)
@@ -244,27 +232,34 @@ namespace RPG2D.Item
 
         private void UpdateEditorPreview()
         {
-            if (anchor == null) return;
             if (lineRenderer == null) lineRenderer = GetComponent<LineRenderer>();
 
-            lineRenderer.useWorldSpace = true;
             lineRenderer.positionCount = segmentCount;
-            Vector2 startPos = anchor.position;
-            Vector2 endPos = tailStartPoint != null ? (Vector2)tailStartPoint.position : startPos + Vector2.down * (segmentCount * segmentLength);
+            Vector2 startPos = transform.position;
+            Vector2 direction = Vector2.down;
 
             for (int i = 0; i < segmentCount; i++)
             {
-                float t = (float)i / (segmentCount - 1);
-                lineRenderer.SetPosition(i, Vector2.Lerp(startPos, endPos, t));
+                Vector2 nodePos = startPos + direction * (i * segmentLength);
+                lineRenderer.SetPosition(i, nodePos);
+
+                if (i == segmentCount - 1 && hookInstance != null)
+                {
+                    hookInstance.transform.position = nodePos;
+                    hookInstance.transform.rotation = Quaternion.Euler(0, 0, 0);
+                }
             }
         }
 
         private void OnValidate()
         {
-            if (!Application.isPlaying)
-            {
-                UpdateEditorPreview();
-            }
+            totalLength = segmentCount * segmentLength;
+
+            if (parentAnchor == null) parentAnchor = GetComponentInParent<Anchor>();
+            if (hookInstance == null) hookInstance = GetComponentInChildren<ChainHook>();
+            if (hookInstance != null) hookInstance.ownerChain = this;
+
+            UpdateEditorPreview();
         }
 
         // ----- 连接/解扣逻辑 -----
@@ -291,17 +286,36 @@ namespace RPG2D.Item
             }
         }
 
-        public void ApplySwingForce(Vector2 force)
+        public void ApplySwingForce(Vector2 targetMousePos, float strength)
         {
-            if (isFixedTail) return;
+            if (isHooked || nodes.Count < 3) return;
 
-            for (int i = nodes.Count - 3; i < nodes.Count; i++)
+            Vector2 anchorPos = transform.position;
+            Vector2 mouseDir = (targetMousePos - anchorPos).normalized;
+            float verticalFactor = Mathf.Clamp01(Vector2.Dot(mouseDir, Vector2.down) + 0.5f);
+
+            int startIdx = nodes.Count - (nodes.Count / 3);
+            for (int i = startIdx; i < nodes.Count; i++)
             {
-                if (i < 0) continue;
-                var node = nodes[i];
-                node.pos += force * Time.fixedDeltaTime;
+                Node node = nodes[i];
+
+                Vector2 forceDir = (targetMousePos - node.pos).normalized;
+                Vector2 impulse = forceDir * strength * verticalFactor * Time.fixedDeltaTime;
+
+                if (impulse.magnitude > maxSwingImpulse)
+                    impulse = impulse.normalized * maxSwingImpulse;
+
+                node.pos += impulse * swingDamping;
                 nodes[i] = node;
             }
+        }
+
+        public void ApplyRawImpulse(Vector2 impulse)
+        {
+            if (nodes.Count == 0) return;
+            var tail = nodes[nodes.Count - 1];
+            tail.oldPos = tail.pos - impulse * Time.fixedDeltaTime;
+            nodes[nodes.Count - 1] = tail;
         }
 
         // ----- 节点查询 -----
@@ -310,15 +324,20 @@ namespace RPG2D.Item
         {
             int closest = 0;
             float minDist = float.MaxValue;
-            for (int i = 0; i < nodes.Count; i++)
+            for (int i = 0; i < (Application.isPlaying ? nodes.Count : segmentCount); i++)
             {
-                float d = Vector2.Distance(targetPos, nodes[i].pos);
+                Vector2 p = Application.isPlaying ? nodes[i].pos : (Vector2)transform.position + Vector2.down * (i * segmentLength);
+                float d = Vector2.Distance(targetPos, p);
                 if (d < minDist) { minDist = d; closest = i; }
             }
-            return closest;
+            return Mathf.Clamp(closest, 0, segmentCount - 2);
         }
 
-        public Vector2 GetNodePos(int index) => nodes[Mathf.Clamp(index, 0, nodes.Count - 1)].pos;
+        public Vector2 GetNodePos(int index)
+        {
+            if (Application.isPlaying) return nodes[Mathf.Clamp(index, 0, nodes.Count - 1)].pos;
+            return (Vector2)transform.position + Vector2.down * (index * segmentLength);
+        }
 
         public int NodeCount => nodes.Count;
         public float SegLength => segmentLength;
