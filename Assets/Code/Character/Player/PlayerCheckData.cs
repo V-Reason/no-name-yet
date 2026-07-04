@@ -1,4 +1,6 @@
 using RPG2D.Core.Checker;
+using RPG2D.Core.Interaction;
+using RPG2D.Item;
 using UnityEngine;
 
 /// <summary>
@@ -11,5 +13,8 @@ namespace RPG2D.Character.Player
     {
         public bool IsMoving { get; set; }
         public Vector2 Velocity { get; set; }
+
+        public bool CanGrab { get; set; }
+        public IGrabbable TargetGrabbable { get; set; }
     }
 }
