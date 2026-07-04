@@ -15,7 +15,7 @@ public class MenuPanelView : MonoBehaviour
 
     private void OnStartButtonClicked()
     {
-        GameManager.Instance.StartGameWithTransition();
+        GameManager.Instance.ChangeState(GameState.Playing);
         startButton.interactable = false;
     }
 
