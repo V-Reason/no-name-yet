@@ -10,7 +10,7 @@ public enum GameState
 
 public class GameManager : Singleton<GameManager>
 {
-    public GameState CurrentState { get; private set; }
+    public GameState CurrentState { get; private set; } = GameState.Menu;
 
     void Start()
     {
@@ -30,14 +30,11 @@ public class GameManager : Singleton<GameManager>
 
     public void ChangeState(GameState newState)
     {
-        if (CurrentState == newState) return;
-        CurrentState = newState;
-
         // 处理状态进入时的逻辑
         switch (newState)
         {
             case GameState.Menu:
-                Time.timeScale = 1;
+                Time.timeScale = 0;
                 break;
             case GameState.Playing:
                 Time.timeScale = 1;
@@ -46,9 +43,12 @@ public class GameManager : Singleton<GameManager>
                 Time.timeScale = 0; // 暂停游戏物理和计时
                 break;
             case GameState.GameOver:
-                Time.timeScale = 0.2f; // 结算时给一点慢镜头效果
+                Time.timeScale = 0.5f; // 结算时给一点慢镜头效果
                 break;
         }
+
+        if (CurrentState == newState) return;
+        CurrentState = newState;
 
         // 广播状态切换事件
         EventCenter.Broadcast(EventType.GameStateChanged, newState);

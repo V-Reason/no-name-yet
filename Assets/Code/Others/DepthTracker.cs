@@ -21,6 +21,7 @@ public class DepthTracker : MonoBehaviour
         GameState state = (GameState)data;
         if (state == GameState.Playing)
         {
+            if (playerTransform == null) return;
             startY = playerTransform.position.y;
             isTracking = true;
         }

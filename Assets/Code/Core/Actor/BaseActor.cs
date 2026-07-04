@@ -99,7 +99,7 @@ namespace RPG2D.Core.Actor
             else if (moveInput.y < 0)
             {
                 // S：制动减速，目标速度为-1，不追求负速度
-                targetVelocity.y = -targetVelocity.y * 0.10f;
+                targetVelocity.y = targetVelocity.y * 0.25f;
             }
             else
             {
@@ -210,7 +210,6 @@ namespace RPG2D.Core.Actor
 
             cld.sharedMaterial = actorData.material;
 
-            Debug.Log("物理属性设置完毕！");
         }
 
     }

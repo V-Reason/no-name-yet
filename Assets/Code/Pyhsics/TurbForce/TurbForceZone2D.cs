@@ -9,12 +9,10 @@ namespace RPG2D.Pyhsics.TurbForce
     /// 固定 2D 湍流力场, 主动检测区域内目标并施加固定方向和强度的力.
     /// </summary>
     [RequireComponent(typeof(AreaTargetChecker2D))]
+    [ExecuteAlways]
     public class TurbForceZone2D : MonoBehaviour
     {
         private readonly HashSet<IForceReceiver> appliedReceivers = new();
-
-        [SerializeField]
-        private Vector2 forceDirection = Vector2.up;
 
         [SerializeField, Min(0f)]
         private float forceMagnitude = 10f;
@@ -28,23 +26,16 @@ namespace RPG2D.Pyhsics.TurbForce
         [SerializeField, Range(0f, 1f)]
         private float edgeForceMultiplier = 0f;
 
+        private static readonly int ShaderPropFlowDirection = Shader.PropertyToID("_FlowDirection");
+
         private AreaTargetChecker2D targetChecker;
+        private MeshRenderer meshRenderer;
+        private MaterialPropertyBlock propertyBlock;
 
         /// <summary>
-        /// 获取当前区域提供的湍流力, 方向会被归一化后再乘以强度.
+        /// 获取当前区域提供的湍流力, 方向自动跟随 Transform 的 Y 轴朝向, 强度由 forceMagnitude 控制.
         /// </summary>
-        public Vector2 Force
-        {
-            get
-            {
-                if (forceDirection.sqrMagnitude <= Mathf.Epsilon || forceMagnitude <= 0f)
-                {
-                    return Vector2.zero;
-                }
-
-                return forceDirection.normalized * forceMagnitude;
-            }
-        }
+        public Vector2 Force => (Vector2)transform.up * forceMagnitude;
 
         private void Reset()
         {
@@ -55,6 +46,12 @@ namespace RPG2D.Pyhsics.TurbForce
         {
             targetChecker = GetComponent<AreaTargetChecker2D>();
             EnsureTriggerCollider();
+            CacheTurbulenceMaterial();
+        }
+
+        private void LateUpdate()
+        {
+            SyncFlowDirection();
         }
 
         private void OnValidate()
@@ -67,15 +64,19 @@ namespace RPG2D.Pyhsics.TurbForce
 
         private void FixedUpdate()
         {
+            if (!Application.isPlaying)
+            {
+                return;
+            }
+
             ApplyForceToTargets();
         }
 
         /// <summary>
-        /// 设置湍流方向和强度, 用于运行时配置或测试固定力结果.
+        /// 设置湍流强度, 方向由 Transform 的 Y 轴朝向自动决定.
         /// </summary>
-        public void SetForce(Vector2 direction, float magnitude)
+        public void SetForce(float magnitude)
         {
-            forceDirection = direction;
             forceMagnitude = Mathf.Max(0f, magnitude);
         }
 
@@ -283,6 +284,27 @@ namespace RPG2D.Pyhsics.TurbForce
             zoneCollider.isTrigger = true;
         }
 
+        private void CacheTurbulenceMaterial()
+        {
+            meshRenderer = GetComponent<MeshRenderer>();
+            if (meshRenderer != null)
+            {
+                propertyBlock = new MaterialPropertyBlock();
+            }
+        }
+
+        private void SyncFlowDirection()
+        {
+            if (meshRenderer == null)
+            {
+                return;
+            }
+
+            meshRenderer.GetPropertyBlock(propertyBlock);
+            propertyBlock.SetVector(ShaderPropFlowDirection, -Vector2.up);
+            meshRenderer.SetPropertyBlock(propertyBlock);
+        }
+
         private void OnDrawGizmosSelected()
         {
             Vector2 force = Force;
@@ -291,9 +313,9 @@ namespace RPG2D.Pyhsics.TurbForce
                 return;
             }
 
-            Gizmos.color = Color.cyan;
+            Gizmos.color = Color.red;
             Vector3 start = transform.position;
-            Vector3 end = start + (Vector3)force.normalized;
+            Vector3 end = start + (Vector3)force;
             Gizmos.DrawLine(start, end);
             Gizmos.DrawSphere(end, 0.08f);
         }
