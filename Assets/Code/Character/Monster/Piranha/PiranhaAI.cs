@@ -10,6 +10,7 @@ namespace RPG2D.Character.Monster.Piranha
     }
 
     [RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(Collider2D))]
     public class PiranhaAI : MonoBehaviour
     {
         [Header("移动")]
@@ -41,14 +42,38 @@ namespace RPG2D.Character.Monster.Piranha
             rb = GetComponent<Rigidbody2D>();
             bodyCollider = GetComponent<Collider2D>();
             bodyRenderer = GetComponentInChildren<Renderer>();
+            SetupBodyCollider();
             moveDirection = (int)initialDirection;
             ApplyFacing();
+        }
+
+        private void Reset()
+        {
+            bodyCollider = GetComponent<Collider2D>();
+            SetupBodyCollider();
+        }
+
+        private void OnValidate()
+        {
+            bodyCollider = GetComponent<Collider2D>();
+            SetupBodyCollider();
         }
 
         private void FixedUpdate()
         {
             UpdateMovement();
             UpdateTurnAround();
+        }
+
+        /// <summary>
+        /// 将食人鱼本体碰撞体设为触发器，避免实体碰撞改变固定巡逻轨迹。
+        /// </summary>
+        private void SetupBodyCollider()
+        {
+            if (bodyCollider != null)
+            {
+                bodyCollider.isTrigger = true;
+            }
         }
 
         /// <summary>
