@@ -22,20 +22,29 @@ public class Chain : MonoBehaviour
         }
     }
 
-    [Header("Chain Structure")]
+    [Header("链条结构设置")]
+    [Tooltip("锚点")]
     public Transform anchor;
+    [Tooltip("链条尾巴")]
     public Transform tailStartPoint;
+    [Tooltip("链条段数")]
     public int segmentCount = 10;
+    [Tooltip("每段长度")]
     public float segmentLength = 1f;
 
-    [Header("Physics Settings")]
+    [Header("物理参数设置")]
+    [Tooltip("重力参数")]
     public Vector2 gravity = new Vector2(0, -1f);
+    [Tooltip("运动阻力（值越小阻力越大）")]
     [Range(0f, 1f)] public float drag = 0.95f;
+    [Tooltip("物理计算密度")]
     public int constraintIterations = 15; // 提高迭代次数让链子更结实
 
-    [Header("Collision Settings")]
+    [Header("碰撞设置")]
     public bool enableCollision = true;
+    [Tooltip("碰撞目标")]
     public LayerMask collisionLayer;
+    [Tooltip("检测敏感度")]
     public float nodeRadius = 0.15f;
 
     private List<Node> nodes = new List<Node>();
