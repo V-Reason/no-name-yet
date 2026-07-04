@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Collections.Generic;
 
 public class UIManager : Singleton<UIManager>
 {
@@ -8,6 +7,12 @@ public class UIManager : Singleton<UIManager>
     public GameObject playPanel;
     public GameObject pausePanel;
     public GameObject gameOverPanel;
+
+    void Start()
+    {
+        // 启动时主动同步一次当前状态，防止 OnEnable 订阅晚于 GameManager 首次广播
+        HandleStateUI(GameManager.Instance.CurrentState);
+    }
 
     void OnEnable()
     {

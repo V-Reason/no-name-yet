@@ -2,15 +2,13 @@ using UnityEngine;
 
 public class Blackboard : Singleton<Blackboard>
 {
-    // [Header("配置文件")]
-    // 拖入 ScriptableObject 配置文件
-    // public PlayerData playerConfig;
+    [Header("实时游戏数据")]
+    public float currentDepth;
+    public float targetDepth = 500f;
 
-    // [Header("实时数据")]
-
-    // 重置数据
     public void ResetData()
     {
+        currentDepth = 0;
     }
 
     // 演示

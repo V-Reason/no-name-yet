@@ -33,8 +33,19 @@ public class AudioManager : Singleton<AudioManager>
 
     public void PlayRandomPitchSFX(AudioClip clip, float volume = 1f)
     {
-        sfxSource.pitch = Random.Range(0.8f, 1.2f);
-        sfxSource.PlayOneShot(clip, volume);
-        sfxSource.pitch = 1f; // 播完重置
+        StartCoroutine(PlayRandomPitchCoroutine(clip, volume));
+    }
+
+    private System.Collections.IEnumerator PlayRandomPitchCoroutine(AudioClip clip, float volume)
+    {
+        GameObject temp = new GameObject("TempSFX");
+        temp.transform.SetParent(transform);
+        AudioSource source = temp.AddComponent<AudioSource>();
+        source.clip = clip;
+        source.volume = volume;
+        source.pitch = Random.Range(0.8f, 1.2f);
+        source.Play();
+        yield return new WaitForSeconds(clip.length / source.pitch);
+        Destroy(temp);
     }
 }

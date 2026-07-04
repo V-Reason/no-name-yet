@@ -37,7 +37,18 @@ public class PoolManager : Singleton<PoolManager>
         // obj.OnDespawn();
     }
 
-    public void Clear() => poolDict.Clear();
+    public void Clear()
+    {
+        foreach (var queue in poolDict.Values)
+        {
+            while (queue.Count > 0)
+            {
+                GameObject obj = queue.Dequeue();
+                if (obj != null) Destroy(obj);
+            }
+        }
+        poolDict.Clear();
+    }
 }
 
 // 可选
