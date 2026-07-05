@@ -300,6 +300,11 @@ namespace RPG2D.Pyhsics.TurbForce
                 return;
             }
 
+            if (propertyBlock == null)
+            {
+                propertyBlock = new MaterialPropertyBlock();
+            }
+
             meshRenderer.GetPropertyBlock(propertyBlock);
             propertyBlock.SetVector(ShaderPropFlowDirection, -Vector2.up);
             meshRenderer.SetPropertyBlock(propertyBlock);

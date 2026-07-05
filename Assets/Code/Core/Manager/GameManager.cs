@@ -10,7 +10,7 @@ public enum GameState
 
 public class GameManager : Singleton<GameManager>
 {
-    public GameState CurrentState { get; private set; } = GameState.Menu;
+    public GameState CurrentState { get; private set; }
 
     void Start()
     {
@@ -34,7 +34,7 @@ public class GameManager : Singleton<GameManager>
         switch (newState)
         {
             case GameState.Menu:
-                Time.timeScale = 0;
+                Time.timeScale = 1;
                 break;
             case GameState.Playing:
                 Time.timeScale = 1;

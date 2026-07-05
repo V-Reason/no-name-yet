@@ -25,6 +25,8 @@ public class ParallaxScrolling : MonoBehaviour
     private Vector3 startPosition;
     private Vector3 startCameraPos;
     private int gridSize;
+    private bool _pendingSnapToPlayer;
+    private bool _initialized;
 
     private Transform[] tileTransforms;
 
@@ -44,11 +46,14 @@ public class ParallaxScrolling : MonoBehaviour
 
         if (snapToPlayerOnStart)
         {
-            var player = GameObject.FindGameObjectWithTag(playerTag);
-            if (player != null)
+            var gm = GameManager.Instance;
+            if (gm != null && gm.CurrentState == GameState.Playing)
             {
-                Vector3 playerPos = player.transform.position;
-                transform.position = new Vector3(playerPos.x, playerPos.y, transform.position.z);
+                SnapToPlayerPosition();
+            }
+            else
+            {
+                transform.position = new Vector3(0, 0, transform.position.z);
             }
         }
 
@@ -70,6 +75,45 @@ public class ParallaxScrolling : MonoBehaviour
             tileTransforms[i] = transform.GetChild(i);
 
         sourceRenderer.enabled = false;
+        _initialized = true;
+    }
+
+    private void OnEnable()
+    {
+        EventCenter.Subscribe(EventType.GameStateChanged, OnGameStateChanged);
+    }
+
+    private void OnDisable()
+    {
+        EventCenter.Unsubscribe(EventType.GameStateChanged, OnGameStateChanged);
+    }
+
+    private void OnGameStateChanged(object state)
+    {
+        if (!_initialized) return;
+
+        var gameState = (GameState)state;
+        if (gameState == GameState.Playing)
+        {
+            _pendingSnapToPlayer = true;
+        }
+        else if (gameState == GameState.Menu)
+        {
+            transform.position = new Vector3(0, 0, transform.position.z);
+            startPosition = transform.position;
+            if (targetCamera != null)
+                startCameraPos = targetCamera.transform.position;
+        }
+    }
+
+    private void SnapToPlayerPosition()
+    {
+        var player = GameObject.FindGameObjectWithTag(playerTag);
+        if (player != null)
+        {
+            Vector3 playerPos = player.transform.position;
+            transform.position = new Vector3(playerPos.x, playerPos.y, transform.position.z);
+        }
     }
 
     private void BuildTileGrid(SpriteRenderer source)
@@ -97,6 +141,16 @@ public class ParallaxScrolling : MonoBehaviour
     private void LateUpdate()
     {
         if (targetCamera == null) return;
+
+        if (_pendingSnapToPlayer)
+        {
+            SnapToPlayerPosition();
+            startPosition = transform.position;
+            if (targetCamera != null)
+                startCameraPos = targetCamera.transform.position;
+            _pendingSnapToPlayer = false;
+            return;
+        }
 
         Vector3 camPos = targetCamera.transform.position;
         Vector3 camDelta = camPos - startCameraPos;
