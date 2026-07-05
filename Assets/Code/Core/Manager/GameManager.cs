@@ -43,7 +43,7 @@ public class GameManager : Singleton<GameManager>
                 Time.timeScale = 0; // 暂停游戏物理和计时
                 break;
             case GameState.GameOver:
-                Time.timeScale = 0.5f; // 结算时给一点慢镜头效果
+                Time.timeScale = 0.6f; // 结算时给一点慢镜头效果
                 break;
         }
 

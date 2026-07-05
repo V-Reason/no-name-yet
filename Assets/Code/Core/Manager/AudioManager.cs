@@ -7,7 +7,9 @@ public class AudioManager : Singleton<AudioManager>
     [Header("音量")]
     [SerializeField] private float _musicVolume = 1f;
     [SerializeField] private float _sfxVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float _menuVolumeRatio = 0.3f;
     [SerializeField, Range(0f, 1f)] private float _pauseVolumeRatio = 0.3f;
+    [SerializeField, Range(1f, 2f)] private float _gameOverVolumeRatio = 1.3f;
     [SerializeField, Range(0.1f, 2f)] private float _musicFadeDuration = 0.5f;
 
     [Header("音频资源")]
@@ -102,30 +104,31 @@ public class AudioManager : Singleton<AudioManager>
     private void OnGameStateChanged(object data)
     {
         var state = (GameState)data;
-        switch (state)
-        {
-            case GameState.Menu:
-                StopMusic();
-                break;
-            case GameState.Playing:
-                if (_gameplayBgm) PlayMusic(_gameplayBgm);
-                ApplyMusicVolume();
-                break;
-            case GameState.Paused:
-                ApplyMusicVolume();
-                break;
-            case GameState.GameOver:
-                StopMusic();
-                break;
-        }
+
+        if (_gameplayBgm)
+            PlayMusic(_gameplayBgm);
+
+        ApplyMusicVolume();
     }
 
     private void ApplyMusicVolume()
     {
         if (!_musicSource) return;
         float target = _musicVolume;
-        if (GameManager.Instance.CurrentState == GameState.Paused)
-            target *= _pauseVolumeRatio;
+
+        switch (GameManager.Instance.CurrentState)
+        {
+            case GameState.Menu:
+                target *= _menuVolumeRatio;
+                break;
+            case GameState.Paused:
+                target *= _pauseVolumeRatio;
+                break;
+            case GameState.GameOver:
+                target *= _gameOverVolumeRatio;
+                break;
+        }
+
         if (IsMusicMuted) target = 0f;
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
