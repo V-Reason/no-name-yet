@@ -7,6 +7,7 @@ public class UIManager : Singleton<UIManager>
     public GameObject playPanel;
     public GameObject pausePanel;
     public GameObject gameOverPanel;
+    public GameObject middlePanel;
 
     void Start()
     {
@@ -33,6 +34,7 @@ public class UIManager : Singleton<UIManager>
         playPanel?.SetActive(false);
         pausePanel?.SetActive(false);
         gameOverPanel?.SetActive(false);
+        middlePanel?.SetActive(false);
 
         // 根据状态开启对应的面板
         switch (state)
@@ -41,6 +43,7 @@ public class UIManager : Singleton<UIManager>
             case GameState.Playing: playPanel?.SetActive(true); break;
             case GameState.Paused: pausePanel?.SetActive(true); break;
             case GameState.GameOver: gameOverPanel?.SetActive(true); break;
+            case GameState.MidCheckpoint: middlePanel?.SetActive(true); break;
         }
     }
 }

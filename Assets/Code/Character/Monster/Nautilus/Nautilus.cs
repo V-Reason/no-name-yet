@@ -1,9 +1,9 @@
 using UnityEngine;
 
-namespace RPG2D.Character.Monster.Jellyfish
+namespace RPG2D.Character.Monster.Nautilus
 {
     [RequireComponent(typeof(SpriteRenderer))]
-    public class Jellyfish : MonoBehaviour
+    public class Nautilus : MonoBehaviour
     {
         [Header("移动")]
         [SerializeField, Min(0f)] private float baseSpeed = 0.5f;
@@ -22,9 +22,9 @@ namespace RPG2D.Character.Monster.Jellyfish
 
         private float _speed;
         private float _noiseOffset;
-        private IJellyfishSpawner _spawner;
+        private NautilusSpawner _spawner;
 
-        public void Init(IJellyfishSpawner spawner)
+        public void Init(NautilusSpawner spawner)
         {
             _spawner = spawner;
             _speed = baseSpeed + Random.Range(-speedVariance, speedVariance);
@@ -38,9 +38,9 @@ namespace RPG2D.Character.Monster.Jellyfish
         {
             float drift = (Mathf.PerlinNoise(_noiseOffset + Time.time * driftFrequency, 0f) - 0.5f)
                 * 2f * driftAmplitude;
-            transform.position += new Vector3(drift, _speed, 0f) * Time.deltaTime;
+            transform.position += new Vector3(drift, -_speed, 0f) * Time.deltaTime;
 
-            if (IsAboveViewport())
+            if (IsBelowViewport())
             {
                 PoolManager.Instance.Despawn(gameObject);
             }
@@ -55,13 +55,13 @@ namespace RPG2D.Character.Monster.Jellyfish
             }
         }
 
-        private bool IsAboveViewport()
+        private bool IsBelowViewport()
         {
             Camera cam = Camera.main;
             if (cam == null) return false;
 
-            float viewportTop = cam.ViewportToWorldPoint(new Vector3(0, 1, 0)).y;
-            return transform.position.y > viewportTop + despawnMargin;
+            float viewportBottom = cam.ViewportToWorldPoint(new Vector3(0, 0, 0)).y;
+            return transform.position.y < viewportBottom - despawnMargin;
         }
     }
 }

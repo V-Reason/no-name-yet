@@ -5,7 +5,8 @@ public enum GameState
     Menu,
     Playing,
     Paused,
-    GameOver
+    GameOver,
+    MidCheckpoint
 }
 
 public class GameManager : Singleton<GameManager>
@@ -44,6 +45,9 @@ public class GameManager : Singleton<GameManager>
                 break;
             case GameState.GameOver:
                 Time.timeScale = 0.6f; // 结算时给一点慢镜头效果
+                break;
+            case GameState.MidCheckpoint:
+                Time.timeScale = 0; // 中场暂停
                 break;
         }
 

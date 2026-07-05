@@ -5,6 +5,8 @@ public class DepthTracker : MonoBehaviour
     public Transform playerTransform;
     private float startY;
     private bool isTracking;
+    private bool hasStarted;
+    private bool midCheckpointTriggered;
 
     void OnEnable()
     {
@@ -19,15 +21,27 @@ public class DepthTracker : MonoBehaviour
     private void OnStateChanged(object data)
     {
         GameState state = (GameState)data;
-        if (state == GameState.Playing)
+        switch (state)
         {
-            if (playerTransform == null) return;
-            startY = playerTransform.position.y;
-            isTracking = true;
-        }
-        else
-        {
-            isTracking = false;
+            case GameState.Playing:
+                if (playerTransform == null) return;
+                if (!hasStarted)
+                {
+                    startY = playerTransform.position.y;
+                    hasStarted = true;
+                }
+                isTracking = true;
+                break;
+            case GameState.MidCheckpoint:
+                break;
+            case GameState.Menu:
+                isTracking = false;
+                hasStarted = false;
+                midCheckpointTriggered = false;
+                break;
+            default:
+                isTracking = false;
+                break;
         }
     }
 
@@ -35,8 +49,16 @@ public class DepthTracker : MonoBehaviour
     {
         if (!isTracking || playerTransform == null) return;
 
-        float depth = startY - playerTransform.position.y;
-        Blackboard.Instance.currentDepth = Mathf.Max(0, depth);
+        float rawDepth = startY - playerTransform.position.y;
+        float displayDepth = rawDepth * Blackboard.Instance.depthMultiplier;
+        Blackboard.Instance.currentDepth = Mathf.Max(0, displayDepth);
+
+        if (!midCheckpointTriggered && Blackboard.Instance.currentDepth >= 250f)
+        {
+            midCheckpointTriggered = true;
+            GameManager.Instance.ChangeState(GameState.MidCheckpoint);
+            return;
+        }
 
         if (Blackboard.Instance.currentDepth >= Blackboard.Instance.targetDepth)
         {

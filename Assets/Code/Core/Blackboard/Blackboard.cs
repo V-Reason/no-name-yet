@@ -5,6 +5,7 @@ public class Blackboard : Singleton<Blackboard>
     [Header("实时游戏数据")]
     public float currentDepth;
     public float targetDepth = 500f;
+    public float depthMultiplier = 2.5f;
 
     [Header("磁铁状态")]
     public bool hasMagnet;
